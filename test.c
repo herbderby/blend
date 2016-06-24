@@ -11,14 +11,11 @@ int main(int argc, char** argv) {
         n = atoi(argv[1]);
     }
 
-    if (n < 0) {
-        n = -n;
-        while (n --> 0) {
-            fused(dst, src, cov, 1024);
-        }
+    for (int j = 0; j < n; j++) {
+        fused(dst, src, cov, 1024);
     }
 
-    while (n --> 0) {
+    for (int j = 0; j < n; j++) {
         struct stage stages[] = {
             { NULL,       check_n, NULL },
             { NULL, load_srgb_dst, NULL },
