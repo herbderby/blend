@@ -5,12 +5,11 @@
 extern const float srgb_to_linear_table[256];
 
 static inline __m128 srgb_to_linear(int srgb) {
-    const __m128 rgb_mask = _mm_setr_ps(-0.0f, -0.0f, -0.0f, 0.0f);
-    __m128 l = _mm_undefined_ps();
-    l = _mm_mask_i32gather_ps(l, srgb_to_linear_table,
-                              _mm_cvtepu8_epi32(_mm_cvtsi32_si128(srgb)), rgb_mask, 4);
-    l = _mm_setr_ps(l[0], l[1], l[2], ((unsigned)srgb >> 24) * (1/255.0f));
-    return l;
+    unsigned u = (unsigned)srgb;
+    return _mm_setr_ps(srgb_to_linear_table[(u    ) & 0xff],
+                       srgb_to_linear_table[(u>> 8) & 0xff],
+                       srgb_to_linear_table[(u>>16) & 0xff],
+                       (u>>24) * (1/255.0f));
 }
 
 static inline int linear_to_srgb(__m128 linear) {
