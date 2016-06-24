@@ -17,11 +17,11 @@ int main(int argc, char** argv) {
 
     for (int j = 0; j < n; j++) {
         struct stage stages[] = {
-            { NULL, load_srgb_dst,  dst },
-            { NULL, load_srgb_src,  src },
+            { NULL, load_srgb_dst, NULL },
+            { NULL, load_srgb_src, NULL },
             { NULL,       srcover, NULL },
             { NULL,   lerp_a8_cov,  cov },
-            { NULL,    store_srgb,  dst },
+            { NULL,    store_srgb, NULL },
         };
 
         for (int i = 0; i < 4; i++) {
@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
         }
         stages[4].next = &stages[1];
 
-        stages[0].fn(&stages[0], 1023,_mm_setzero_ps(), _mm_setzero_ps());
+        stages[0].fn(&stages[0], 1023, dst, src, _mm_setzero_ps(), _mm_setzero_ps());
     }
 
     return 0;
