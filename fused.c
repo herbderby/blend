@@ -3,7 +3,7 @@
 
 void fused(int* dst, const int* src, const char* cov, int n) {
     __m128 d, s;
-    while (n --> 0) {
+    do {
         d = _mm_cvtepi32_ps(_mm_cvtepu8_epi32(_mm_cvtsi32_si128(*dst)));
         d = _mm_mul_ps(d, _mm_set1_ps(1/255.0f));
         d = _mm_blend_ps(_mm_mul_ps(d,d), d, 0x08);
@@ -26,5 +26,5 @@ void fused(int* dst, const int* src, const char* cov, int n) {
         dst++;
         src++;
         cov++;
-    }
+    } while (--n > 0);
 }
