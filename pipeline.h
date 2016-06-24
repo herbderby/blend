@@ -4,7 +4,7 @@
 
 struct stage;
 
-typedef void blend(struct stage*, size_t n, void* dp, const void* sp, __m128 d, __m128 s);
+typedef void blend(struct stage*, size_t n, void* dp, __m128 d, __m128 s);
 
 struct stage {
     struct stage* next;
