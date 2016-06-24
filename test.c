@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
         }
         stages[5].next = &stages[0];
 
-        stages[0].fn(&stages[0], dst, _mm_setzero_ps(), _mm_setzero_ps(), 1024);
+        stages[0].fn(&stages[0], dst, src, cov, _mm_setzero_ps(), _mm_setzero_ps(), 1024);
     }
 
     return 0;
