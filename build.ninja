@@ -1,0 +1,23 @@
+builddir = bin
+
+cc = clang
+cflags = -Os -momit-leaf-frame-pointer -march=native -ffp-contract=fast -Werror -Weverything -Wno-unused-parameter
+
+rule compile
+    command = $cc -c $in -MD -MF $out.d $cflags -o $out
+    depfile = $out.d
+    deps    = gcc
+
+rule link
+    command = $cc $in -o $out
+
+rule run
+    command = ./$in > $out
+
+build bin/test.o: compile test.c
+build bin/fused.o: compile fused.c
+build bin/pipeline.o: compile pipeline.c
+
+build bin/test: link bin/test.o bin/fused.o bin/pipeline.o
+
+build bin/test.log: run bin/test
