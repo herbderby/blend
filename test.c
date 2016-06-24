@@ -17,14 +17,16 @@ int main(int argc, char** argv) {
 
     for (int j = 0; j < n; j++) {
         struct stage stages[] = {
-            { NULL, load_srgb_dst, NULL },
-            { NULL, load_srgb_src,  src },
-            { NULL,       srcover, NULL },
-            { NULL,   lerp_a8_cov,  cov },
-            { NULL,    store_srgb, NULL },
+            { NULL,         load_d_srgb, NULL },
+            { NULL,         load_s_srgb,  src },
+            { NULL,             srcover, NULL },
+            { NULL,             lerp_u8,  cov },
+            { NULL, store_s_load_d_srgb, NULL },
         };
 
-        for (int i = 0; i < 4; i++) {
+        size_t nstages = sizeof(stages) / sizeof(*stages);
+
+        for (size_t i = 0; i < nstages-1; i++) {
             stages[i].next = &stages[i+1];
         }
         stages[4].next = &stages[1];

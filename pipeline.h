@@ -12,8 +12,8 @@ struct stage {
     void* ctx;
 };
 
-blend load_srgb_dst,
-      load_srgb_src,
+blend load_d_srgb,
+      load_s_srgb,
       srcover,
-      lerp_a8_cov,
-      store_srgb;
+      lerp_u8,
+      store_s_load_d_srgb;
