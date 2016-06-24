@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
         for (int i = 0; i < 4; i++) {
             stages[i].next = &stages[i+1];
         }
-        stages[4].next = &stages[0];
+        stages[4].next = &stages[1];
 
         stages[0].fn(&stages[0], dst, src, cov, _mm_setzero_ps(), _mm_setzero_ps(), 1024);
     }
