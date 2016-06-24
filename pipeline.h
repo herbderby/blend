@@ -5,7 +5,7 @@
 struct stage;
 
 typedef void blend(struct stage*,
-                   void* dst, const void* vsrc, const void* vcov,
+                   void* dp, const void* sp, const void* cp,
                    __m128 d, __m128 s, int n);
 
 struct stage {
@@ -15,7 +15,7 @@ struct stage {
 };
 
 blend load_srgb_dst,
-      load_srgb_src,  // ctx == src pointer
+      load_srgb_src,
       srcover,
-      lerp_a8_cov,    // ctx == cov pointer
+      lerp_a8_cov,
       store_srgb;
