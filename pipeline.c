@@ -1,19 +1,16 @@
 #include "pipeline.h"
+#include "srgb.h"
 
 void load_srgb_dst(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
     int* dst = dp;
-    d = _mm_cvtepi32_ps(_mm_cvtepu8_epi32(_mm_cvtsi32_si128(dst[n])));
-    d = _mm_mul_ps(d, _mm_set1_ps(1/255.0f));
-    d = _mm_blend_ps(_mm_mul_ps(d,d), d, 0x08);
+    d = srgb_to_linear(dst[n]);
 
     stage->next->fn(stage->next, n,dp,d,s);
 }
 
 void load_srgb_src(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
-    const int* src = stage->ctx;
-    s = _mm_cvtepi32_ps(_mm_cvtepu8_epi32(_mm_cvtsi32_si128(src[n])));
-    s = _mm_mul_ps(s, _mm_set1_ps(1/255.0f));
-    s = _mm_blend_ps(_mm_mul_ps(s,s), s, 0x08);
+    int* src = stage->ctx;
+    s = srgb_to_linear(src[n]);
 
     stage->next->fn(stage->next, n,dp,d,s);
 }
@@ -36,17 +33,13 @@ void lerp_a8_cov(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
 
 void store_srgb(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
     int* dst = dp;
-    s = _mm_mul_ps(_mm_set1_ps(255), _mm_blend_ps(_mm_rcp_ps(_mm_rsqrt_ps(s)), s, 0x08));
-    dst[n] = _mm_cvtsi128_si32(_mm_shuffle_epi8(_mm_cvtps_epi32(s),
-                                                _mm_setr_epi8(0,4,8,12,0,0,0,0,0,0,0,0,0,0,0,0)));
+    dst[n] = linear_to_srgb(s);
 
     if (n-- == 0) {
         return;
     }
 
-    d = _mm_cvtepi32_ps(_mm_cvtepu8_epi32(_mm_cvtsi32_si128(dst[n])));
-    d = _mm_mul_ps(d, _mm_set1_ps(1/255.0f));
-    d = _mm_blend_ps(_mm_mul_ps(d,d), d, 0x08);
+    d = srgb_to_linear(dst[n]);
 
     stage->next->fn(stage->next, n,dp,d,s);
 }
