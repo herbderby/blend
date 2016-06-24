@@ -1,11 +1,5 @@
 #include "pipeline.h"
 
-void check_n(struct stage* stage, void* vdst, const void* vsrc, const void* vcov, __m128 d, __m128 s, int n) {
-    if (n--) {
-        stage->next->fn(stage->next, vdst,vsrc,vcov,d,s,n);
-    }
-}
-
 void load_srgb_dst(struct stage* stage, void* vdst, const void* vsrc, const void* vcov, __m128 d, __m128 s, int n) {
     int* dst = vdst;
     d = _mm_cvtepi32_ps(_mm_cvtepu8_epi32(_mm_cvtsi32_si128(*dst)));
@@ -52,5 +46,7 @@ void store_srgb(struct stage* stage, void* vdst, const void* vsrc, const void* v
     *dst = _mm_cvtsi128_si32(_mm_shuffle_epi8(_mm_cvtps_epi32(s),
                                               _mm_setr_epi8(0,4,8,12,0,0,0,0,0,0,0,0,0,0,0,0)));
 
-    stage->next->fn(stage->next, vdst,vsrc,vcov,d,s,n);
+    if (--n) {
+        stage->next->fn(stage->next, vdst,vsrc,vcov,d,s,n);
+    }
 }

@@ -14,8 +14,7 @@ struct stage {
     void* ctx;
 };
 
-blend check_n,
-      load_srgb_dst,
+blend load_srgb_dst,
       load_srgb_src,  // ctx == src pointer
       srcover,
       lerp_a8_cov,    // ctx == cov pointer
