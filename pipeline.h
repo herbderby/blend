@@ -13,7 +13,7 @@ struct stage {
     void* ctx;
 };
 
-blend next,
+blend splice_next,
       done_yet,
       load_d_srgb,
       load_s_srgb,

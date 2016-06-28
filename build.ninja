@@ -18,8 +18,7 @@ build bin/test.o: compile test.c
 build bin/srgb.o: compile srgb.c
 build bin/fused.o: compile fused.c
 build bin/pipeline.o: compile pipeline.c
-build bin/next.o: compile next.c
 
-build bin/test: link bin/test.o bin/srgb.o bin/fused.o bin/pipeline.o bin/next.o
+build bin/test: link bin/test.o bin/srgb.o bin/fused.o bin/pipeline.o
 
 build bin/test.log: run bin/test
