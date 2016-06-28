@@ -1,5 +1,6 @@
 #include "fused.h"
 #include "pipeline.h"
+#include <assert.h>
 #include <stdlib.h>
 
 static void wire(struct stage* stages, size_t nstages) {
@@ -24,6 +25,7 @@ static void simplest_pipeline(int* dp, const int* sp, const char* cp, int n) {
 }
 
 static void fastest_pipeline(int* dp, const int* sp, const char* cp, int n) {
+    assert (n > 0);
     struct stage stages[] = {
         { (void*)1,                  load_d_srgb, NULL, NULL },
         { (void*)2,                  load_s_srgb,   sp, NULL },
