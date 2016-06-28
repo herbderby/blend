@@ -1,6 +1,14 @@
 #include "pipeline.h"
 #include "srgb.h"
 
+void done_yet(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
+    if (n-- == 0) {
+        return;
+    }
+
+    stage->next->fn(stage->next, n,dp,d,s);
+}
+
 void load_d_srgb(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
     int* dst = dp;
     d = srgb_to_linear(dst[n]);
@@ -31,7 +39,14 @@ void lerp_u8(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
     stage->next->fn(stage->next, n,dp,d,s);
 }
 
-void store_s_check_next_load_d_srgb(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
+void store_s_srgb(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
+    int* dst = dp;
+    dst[n] = linear_to_srgb(s);
+
+    stage->next->fn(stage->next, n,dp,d,s);
+}
+
+void store_s_done_yet_load_d_srgb(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
     int* dst = dp;
     dst[n] = linear_to_srgb(s);
 
