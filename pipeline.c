@@ -46,5 +46,19 @@ void done_yet(const struct stage* stage, size_t n, void* dp, __m128 d, __m128 s)
     if (n-- == 0) {
         return;
     }
+
+    stage->next(stage->ctx, n,dp,d,s);
+}
+
+void super(const struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
+    int* dst = dp;
+    dst[n] = linear_to_srgb(s);
+
+    if (n-- == 0) {
+        return;
+    }
+
+    d = srgb_to_linear(dst[n]);
+
     stage->next(stage->ctx, n,dp,d,s);
 }
