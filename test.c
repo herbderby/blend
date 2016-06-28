@@ -5,28 +5,40 @@
 static int dst[1024], src[1024];
 static char cov[1024];
 
-int main(int argc, char** argv) {
-    int n = argc > 1 ? atoi(argv[1]) : 1;
+static void wire(struct stage* stages, size_t nstages) {
+    for (size_t i = 0; i < nstages; i++) {
+        size_t next = (size_t)stages[i].next;
+        stages[i].next = &stages[next];
+    }
+}
 
-    for (int j = 0; j < n; j++) {
-        fused(dst, src, cov, 1024);
+static void best_pipeline(int* dp, const int* sp, const char* cp, int n) {
+    struct stage stages[] = {
+        { (void*)1,                    load_d_srgb, NULL, NULL },
+        { (void*)2,                    load_s_srgb,   sp, NULL },
+        { (void*)3,                        srcover, NULL, NULL },
+        { (void*)4,                        lerp_u8,   cp, NULL },
+        { (void*)1, store_s_check_next_load_d_srgb, NULL, NULL },
+    };
+    wire(stages, sizeof(stages)/sizeof(*stages));
+
+    stages[0].fn(&stages[0], (size_t)n-1, dp, _mm_setzero_ps(), _mm_setzero_ps());
+}
+
+int main(int argc, char** argv) {
+    int choice = argc > 1 ? atoi(argv[1]) : 0;
+
+    if (choice == 0) {
+        fused        (dst, src, cov, 1024);
+        best_pipeline(dst, src, cov, 1024);
+        return 0;
     }
 
-    for (int j = 0; j < n; j++) {
-        struct stage stages[] = {
-            { (void*)1,         load_d_srgb, NULL },
-            { (void*)2,         load_s_srgb,  src },
-            { (void*)3,             srcover, NULL },
-            { (void*)4,             lerp_u8,  cov },
-            { (void*)1, store_s_load_d_srgb, NULL },
-        };
-
-        for (size_t i = 0; i < sizeof(stages) / sizeof(*stages); i++) {
-            size_t next = (size_t)stages[i].next;
-            stages[i].next = &stages[next];
+    for (int j = 0; j < 100000; j++) {
+        switch (choice) {
+            case 1:         fused(dst, src, cov, 1024); break;
+            case 2: best_pipeline(dst, src, cov, 1024); break;
         }
-
-        stages[0].fn(&stages[0], 1023, dst, _mm_setzero_ps(), _mm_setzero_ps());
     }
 
     return 0;

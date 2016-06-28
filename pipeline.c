@@ -9,7 +9,7 @@ void load_d_srgb(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
 }
 
 void load_s_srgb(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
-    int* src = stage->ctx;
+    const int* src = stage->const_ctx;
     s = srgb_to_linear(src[n]);
 
     stage->next->fn(stage->next, n,dp,d,s);
@@ -23,7 +23,7 @@ void srcover(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
 }
 
 void lerp_u8(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
-    const char* cov = stage->ctx;
+    const char* cov = stage->const_ctx;
     __m128 c = _mm_set1_ps(cov[n] * (1/255.0f)),
            C = _mm_sub_ps(_mm_set1_ps(1), c);
     s = _mm_add_ps(_mm_mul_ps(s, c), _mm_mul_ps(d, C));
@@ -31,7 +31,7 @@ void lerp_u8(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
     stage->next->fn(stage->next, n,dp,d,s);
 }
 
-void store_s_load_d_srgb(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
+void store_s_check_next_load_d_srgb(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
     int* dst = dp;
     dst[n] = linear_to_srgb(s);
 
