@@ -49,16 +49,3 @@ void store_s_srgb(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
 
     next(stage,n,dp,d,s);
 }
-
-void store_s_done_yet_load_d_srgb(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
-    int* dst = dp;
-    dst[n] = linear_to_srgb(s);
-
-    if (n-- == 0) {
-        return;
-    }
-
-    d = srgb_to_linear(dst[n]);
-
-    next(stage,n,dp,d,s);
-}

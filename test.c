@@ -26,24 +26,6 @@ static void simplest_pipeline(int* dp, const int* sp, const char* cp, int n) {
              (size_t)n, dp, _mm_setzero_ps(), _mm_setzero_ps());
 }
 
-static void fastest_pipeline(int* dp, const int* sp, const char* cp, int n) {
-    assert (n > 0);
-    struct stage stages[] = {
-        {                  load_d_srgb, (void*)1, NULL },  // start
-        {                  load_s_srgb, (void*)2, NULL },  // d loaded
-
-        {                      srcover, (void*)3,   sp },  // d+s loaded
-        {                      lerp_u8, (void*)4, NULL },  // s = srcover(d,s)
-        { store_s_done_yet_load_d_srgb, (void*)5,   cp },  // s = lerp(d,s,cov)
-        {                  load_s_srgb, (void*)2, NULL },  // d loaded
-    };
-    size_t nstages = sizeof(stages)/sizeof(*stages);
-    wire(stages, nstages);
-
-    done_yet(&stages[0],
-             (size_t)n, dp, _mm_setzero_ps(), _mm_setzero_ps());
-}
-
 static int dst[1024], src[1024];
 static char cov[1024];
 
@@ -55,7 +37,6 @@ int main(int argc, char** argv) {
             switch (choice) {
                 case 1:             fused(dst, src, cov, 1024); break;
                 case 2: simplest_pipeline(dst, src, cov, 1024); break;
-                case 3:  fastest_pipeline(dst, src, cov, 1024); break;
             }
         }
         return 0;
@@ -63,7 +44,6 @@ int main(int argc, char** argv) {
 
     fused            (dst, src, cov, 1024);
     simplest_pipeline(dst, src, cov, 1024);
-    fastest_pipeline (dst, src, cov, 1024);
 
     return 0;
 }

@@ -18,5 +18,4 @@ stage_fn done_yet,
          load_s_srgb,
          srcover,
          lerp_u8,
-         store_s_srgb,
-         store_s_done_yet_load_d_srgb;
+         store_s_srgb;
