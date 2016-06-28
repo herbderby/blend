@@ -13,8 +13,7 @@ struct stage {
     void* ctx;
 };
 
-stage_fn splice_next,
-         done_yet,
+stage_fn done_yet,
          load_d_srgb,
          load_s_srgb,
          srcover,
