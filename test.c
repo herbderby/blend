@@ -44,20 +44,20 @@ static char cov[1024];
 int main(int argc, char** argv) {
     int choice = argc > 1 ? atoi(argv[1]) : 0;
 
-    if (choice == 0) {
-        fused            (dst, src, cov, 1024);
-        simplest_pipeline(dst, src, cov, 1024);
-        fastest_pipeline (dst, src, cov, 1024);
+    if (choice) {
+        for (int j = 0; j < 100000; j++) {
+            switch (choice) {
+                case 1:             fused(dst, src, cov, 1024); break;
+                case 2: simplest_pipeline(dst, src, cov, 1024); break;
+                case 3:  fastest_pipeline(dst, src, cov, 1024); break;
+            }
+        }
         return 0;
     }
 
-    for (int j = 0; j < 100000; j++) {
-        switch (choice) {
-            case 1:             fused(dst, src, cov, 1024); break;
-            case 2: simplest_pipeline(dst, src, cov, 1024); break;
-            case 3:  fastest_pipeline(dst, src, cov, 1024); break;
-        }
-    }
+    fused            (dst, src, cov, 1024);
+    simplest_pipeline(dst, src, cov, 1024);
+    fastest_pipeline (dst, src, cov, 1024);
 
     return 0;
 }

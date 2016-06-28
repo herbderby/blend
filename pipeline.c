@@ -1,11 +1,7 @@
 #include "pipeline.h"
 #include "srgb.h"
 
-#define NEXT stage->next->fn(stage->next, n,dp,d,s)
-
-void just_next(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
-    NEXT;
-}
+#define NEXT stage->next->fn(stage->next, n,dp,d,s);
 
 void done_yet(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
     if (n-- == 0) {
