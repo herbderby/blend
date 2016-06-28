@@ -5,14 +5,6 @@ static inline void next(const struct stage* stage, size_t n, void* dp, __m128 d,
     stage->next_fn(stage+1, n,dp,d,s);
 }
 
-void done_yet(const struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
-    if (n-- == 0) {
-        return;
-    }
-
-    next(stage,n,dp,d,s);
-}
-
 void load_d_srgb(const struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
     int* dst = dp;
     d = srgb_to_linear(dst[n]);
@@ -50,7 +42,9 @@ void store_s_srgb(const struct stage* stage, size_t n, void* dp, __m128 d, __m12
     next(stage,n,dp,d,s);
 }
 
-void loop(const struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
-    // TODO: explain
+void done_yet(const struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
+    if (n-- == 0) {
+        return;
+    }
     stage->next_fn(stage->ctx, n,dp,d,s);
 }
