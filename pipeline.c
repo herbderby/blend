@@ -2,7 +2,7 @@
 #include "srgb.h"
 
 static inline void next(const struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
-    stage->next_fn(stage+1, n,dp,d,s);
+    stage->next(stage+1, n,dp,d,s);
 }
 
 void load_d_srgb(const struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
@@ -46,5 +46,5 @@ void done_yet(const struct stage* stage, size_t n, void* dp, __m128 d, __m128 s)
     if (n-- == 0) {
         return;
     }
-    stage->next_fn(stage->ctx, n,dp,d,s);
+    stage->next(stage->ctx, n,dp,d,s);
 }
