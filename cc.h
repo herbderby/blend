@@ -8,4 +8,5 @@
 //
 //    __vectorcall 64-bit: rcx/xmm0, rdx/xmm1, r8/xmm2, r9/xmm3, xmm4, xmm5
 //
-//    AAPCS: r0-r3, q0-q3
+//    AAPCS:   r0-r3, q0-q3
+//    AAPCS64: r0-r7, v0-v7
