@@ -12,30 +12,36 @@ static void wire(struct stage* stages, size_t nstages) {
 
 static void simplest_pipeline(int* dp, const int* sp, const char* cp, int n) {
     struct stage stages[] = {
-        { (void*)1,      done_yet, NULL, NULL },
-        { (void*)2,   load_d_srgb, NULL, NULL },
-        { (void*)3,   load_s_srgb,   sp, NULL },
-        { (void*)4,       srcover, NULL, NULL },
-        { (void*)5,       lerp_u8,   cp, NULL },
-        { (void*)0,  store_s_srgb, NULL, NULL },
+        { (void*)1,   load_d_srgb, NULL },
+        { (void*)2,   load_s_srgb, NULL },
+        { (void*)3,       srcover,   sp },
+        { (void*)4,       lerp_u8, NULL },
+        { (void*)5,  store_s_srgb,   cp },
+        { (void*)0,      done_yet, NULL },
     };
-    wire(stages, sizeof(stages)/sizeof(*stages));
+    size_t nstages = sizeof(stages)/sizeof(*stages);
+    wire(stages, nstages);
 
-    stages[0].fn(&stages[0], (size_t)n, dp, _mm_setzero_ps(), _mm_setzero_ps());
+    done_yet(&stages[0],
+             (size_t)n, dp, _mm_setzero_ps(), _mm_setzero_ps());
 }
 
 static void fastest_pipeline(int* dp, const int* sp, const char* cp, int n) {
     assert (n > 0);
     struct stage stages[] = {
-        { (void*)1,                  load_d_srgb, NULL, NULL },
-        { (void*)2,                  load_s_srgb,   sp, NULL },
-        { (void*)3,                      srcover, NULL, NULL },
-        { (void*)4,                      lerp_u8,   cp, NULL },
-        { (void*)1, store_s_done_yet_load_d_srgb, NULL, NULL },
-    };
-    wire(stages, sizeof(stages)/sizeof(*stages));
+        { (void*)1,                  load_d_srgb, NULL },  // start
+        { (void*)2,                  load_s_srgb, NULL },  // d loaded
 
-    stages[0].fn(&stages[0], (size_t)n-1, dp, _mm_setzero_ps(), _mm_setzero_ps());
+        { (void*)3,                      srcover,   sp },  // d+s loaded
+        { (void*)4,                      lerp_u8, NULL },  // s = srcover(d,s)
+        { (void*)5, store_s_done_yet_load_d_srgb,   cp },  // s = lerp(d,s,cov)
+        { (void*)2,                  load_s_srgb, NULL },  // d loaded
+    };
+    size_t nstages = sizeof(stages)/sizeof(*stages);
+    wire(stages, nstages);
+
+    done_yet(&stages[0],
+             (size_t)n, dp, _mm_setzero_ps(), _mm_setzero_ps());
 }
 
 static int dst[1024], src[1024];

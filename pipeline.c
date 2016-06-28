@@ -2,8 +2,7 @@
 #include "srgb.h"
 
 static inline void next(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
-    stage = stage->next;
-    stage->fn(stage,n,dp,d,s);
+    stage->next_fn(stage->next,n,dp,d,s);
 }
 
 void done_yet(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
@@ -22,7 +21,7 @@ void load_d_srgb(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
 }
 
 void load_s_srgb(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
-    const int* src = stage->const_ctx;
+    const int* src = stage->ctx;
     s = srgb_to_linear(src[n]);
 
     next(stage,n,dp,d,s);
@@ -36,7 +35,7 @@ void srcover(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
 }
 
 void lerp_u8(struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
-    const char* cov = stage->const_ctx;
+    const char* cov = stage->ctx;
     __m128 c = _mm_set1_ps(cov[n] * (1/255.0f)),
            C = _mm_sub_ps(_mm_set1_ps(1), c);
     s = _mm_add_ps(_mm_mul_ps(s, c), _mm_mul_ps(d, C));
