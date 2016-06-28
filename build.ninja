@@ -1,7 +1,7 @@
 builddir = bin
 
 cc = clang -fcolor-diagnostics -Weverything
-cflags = -Os -momit-leaf-frame-pointer -march=native -ffp-contract=fast -Werror -Wno-unused-parameter
+cflags = -Os -momit-leaf-frame-pointer -march=native -ffp-contract=fast -Werror
 
 rule compile
     command = $cc -c $in -MD -MF $out.d $cflags -o $out
