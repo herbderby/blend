@@ -12,12 +12,12 @@ static void wire(struct stage* stages, size_t nstages) {
 
 static void simplest_pipeline(int* dp, const int* sp, const char* cp, int n) {
     struct stage stages[] = {
-        { (void*)1,   load_d_srgb, NULL },
-        { (void*)2,   load_s_srgb, NULL },
-        { (void*)3,       srcover,   sp },
-        { (void*)4,       lerp_u8, NULL },
-        { (void*)5,  store_s_srgb,   cp },
-        { (void*)0,      done_yet, NULL },
+        {  load_d_srgb,   (void*)1,   NULL },
+        {  load_s_srgb,   (void*)2,   NULL },
+        {      srcover,   (void*)3,     sp },
+        {      lerp_u8,   (void*)4,   NULL },
+        { store_s_srgb,   (void*)5,     cp },
+        {     done_yet,   (void*)0,   NULL },
     };
     size_t nstages = sizeof(stages)/sizeof(*stages);
     wire(stages, nstages);
@@ -29,13 +29,13 @@ static void simplest_pipeline(int* dp, const int* sp, const char* cp, int n) {
 static void fastest_pipeline(int* dp, const int* sp, const char* cp, int n) {
     assert (n > 0);
     struct stage stages[] = {
-        { (void*)1,                  load_d_srgb, NULL },  // start
-        { (void*)2,                  load_s_srgb, NULL },  // d loaded
+        {                  load_d_srgb, (void*)1, NULL },  // start
+        {                  load_s_srgb, (void*)2, NULL },  // d loaded
 
-        { (void*)3,                      srcover,   sp },  // d+s loaded
-        { (void*)4,                      lerp_u8, NULL },  // s = srcover(d,s)
-        { (void*)5, store_s_done_yet_load_d_srgb,   cp },  // s = lerp(d,s,cov)
-        { (void*)2,                  load_s_srgb, NULL },  // d loaded
+        {                      srcover, (void*)3,   sp },  // d+s loaded
+        {                      lerp_u8, (void*)4, NULL },  // s = srcover(d,s)
+        { store_s_done_yet_load_d_srgb, (void*)5,   cp },  // s = lerp(d,s,cov)
+        {                  load_s_srgb, (void*)2, NULL },  // d loaded
     };
     size_t nstages = sizeof(stages)/sizeof(*stages);
     wire(stages, nstages);

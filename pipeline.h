@@ -7,8 +7,9 @@ struct stage;
 typedef void stage_fn(struct stage*, size_t n, void* dp, __m128 d, __m128 s);
 
 struct stage {
-    struct stage* next;
     stage_fn* next_fn;
+    struct stage* next;
+
     const void* ctx;
 };
 
