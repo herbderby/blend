@@ -4,7 +4,15 @@
 
 struct stage;
 
-typedef void stage_fn(const struct stage*, size_t n, void* dp, __m128 d, __m128 s);
+#if 0
+    #define ABI __attribute__((vectorcall))
+#elif 0
+    #define ABI __attribute__((sysv_abi))
+#else
+    #define ABI
+#endif
+
+typedef ABI void stage_fn(const struct stage*, size_t n, void* dp, __m128 d, __m128 s);
 
 struct stage {
     stage_fn* next;
