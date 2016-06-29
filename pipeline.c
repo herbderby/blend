@@ -9,6 +9,14 @@ ABI void done_yet(const struct stage* stage, size_t n, void* dp, __m128 d, __m12
     stage->next(stage->ctx, n,dp,d,s);
 }
 
+ABI void just_ret(const struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
+    (void)stage;
+    (void)n;
+    (void)dp;
+    (void)d;
+    (void)s;
+}
+
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
 static void next_inc(const struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {

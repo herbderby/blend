@@ -20,6 +20,7 @@ struct stage {
 };
 
 stage_fn done_yet,
+         just_ret,
 
          load_d_srgb,
          load_s_srgb,
