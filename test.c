@@ -3,8 +3,11 @@
 #include <assert.h>
 #include <stdlib.h>
 
-static void simple(int* dp, const int* sp, const char* cp, int n) {
+static void go(const struct stage* start, size_t n, void* dp) {
+    done_yet(start, n, dp, _mm_setzero_ps(), _mm_setzero_ps());
+}
 
+static void simple(int* dp, const int* sp, const char* cp, size_t n) {
     struct stage stages[] = {
         {  load_d_srgb, &stages[1] },  // done_yet
 
@@ -15,13 +18,10 @@ static void simple(int* dp, const int* sp, const char* cp, int n) {
         {     done_yet,       NULL },  // store_s_srgb
         {  load_d_srgb, &stages[1] },  // done_yet
     };
-
-    done_yet(&stages[0],
-             (size_t)n, dp, _mm_setzero_ps(), _mm_setzero_ps());
+    go(stages, n, dp);
 }
 
-static void faster(int* dp, const int* sp, const char* cp, int n) {
-
+static void faster(int* dp, const int* sp, const char* cp, size_t n) {
     struct stage stages[] = {
         {  load_d_srgb, &stages[1] },  // done_yet
         {  load_s_srgb,       NULL },  // load_d
@@ -31,9 +31,7 @@ static void faster(int* dp, const int* sp, const char* cp, int n) {
         {        super,         cp },  // lerp_u8
         {  load_s_srgb, &stages[2] },  // super
     };
-
-    done_yet(&stages[0],
-             (size_t)n, dp, _mm_setzero_ps(), _mm_setzero_ps());
+    go(stages, n, dp);
 }
 
 static int dst[1024], src[1024];

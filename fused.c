@@ -2,7 +2,7 @@
 #include "srgb.h"
 #include <immintrin.h>
 
-void fused(int* dst, const int* src, const char* cov, int n) {
+void fused(int* dst, const int* src, const char* cov, size_t n) {
     __m128 d, s;
     do {
         d = srgb_to_linear(*dst);
