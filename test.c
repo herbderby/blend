@@ -6,32 +6,33 @@
 static void simple(int* dp, const int* sp, const char* cp, int n) {
 
     struct stage stages[] = {
+        {  load_d_srgb, &stages[1] },  // done_yet
+
         {  load_s_srgb,       NULL },  // load_d
         {      srcover,         sp },  // load_s
         {      lerp_u8,       NULL },  // srcover
         { store_s_srgb,         cp },  // lerp_u8
         {     done_yet,       NULL },  // store_s_srgb
-        {  load_d_srgb, &stages[0] },  // done_yet
+        {  load_d_srgb, &stages[1] },  // done_yet
     };
-    size_t nstages = sizeof(stages) / sizeof(*stages);
 
-    done_yet(&stages[nstages-1],
+    done_yet(&stages[0],
              (size_t)n, dp, _mm_setzero_ps(), _mm_setzero_ps());
 }
 
 static void faster(int* dp, const int* sp, const char* cp, int n) {
 
     struct stage stages[] = {
+        {  load_d_srgb, &stages[1] },  // done_yet
         {  load_s_srgb,       NULL },  // load_d
+
         {      srcover,         sp },  // load_s
         {      lerp_u8,       NULL },  // srcover
         {        super,         cp },  // lerp_u8
-        {  load_s_srgb, &stages[1] },  // super
+        {  load_s_srgb, &stages[2] },  // super
     };
 
-    struct stage seed = { load_d_srgb, &stages[0] };
-
-    done_yet(&seed,
+    done_yet(&stages[0],
              (size_t)n, dp, _mm_setzero_ps(), _mm_setzero_ps());
 }
 
