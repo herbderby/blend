@@ -10,8 +10,7 @@ static void pipeline(int* dp, const int* sp, const char* cp, size_t n) {
         {      srcover,  sp  },  // load_s_srgb
         {      lerp_u8, NULL },  // srcover
         { store_s_srgb,  cp  },  // lerp_u8
-        {         done, NULL },  // store_s_srgb
-        {         NULL, NULL },  // done
+        {         NULL, NULL },  // store_s_srgb
     };
 
     for (size_t x = 0; x < n; x++) {

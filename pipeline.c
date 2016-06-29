@@ -1,16 +1,12 @@
 #include "pipeline.h"
 #include "srgb.h"
 
-ABI void done(const struct stage* stage, size_t x, void* dp, __m128 d, __m128 s) {
-    (void)stage;
-    (void)x;
-    (void)dp;
-    (void)d;
-    (void)s;
-}
-
 static void next(const struct stage* stage, size_t x, void* dp, __m128 d, __m128 s) {
     stage->next(stage+1, x,dp,d,s);
+}
+
+static void done(const struct stage* stage, size_t x, void* dp, __m128 d, __m128 s) {
+    (void)stage;  (void)x;  (void)dp;  (void)d;  (void)s;
 }
 
 ABI void load_d_srgb(const struct stage* stage, size_t x, void* dp, __m128 d, __m128 s) {
@@ -47,5 +43,5 @@ ABI void store_s_srgb(const struct stage* stage, size_t x, void* dp, __m128 d, _
     int* dst = dp;
     dst[x] = linear_to_srgb(s);
 
-    next(stage,x,dp,d,s);
+    done(stage,x,dp,d,s);
 }
