@@ -19,10 +19,10 @@ struct stage {
     const void* ctx;
 };
 
-stage_fn load_d_srgb,
+stage_fn done_yet,
+
+         load_d_srgb,
          load_s_srgb,
          srcover,
          lerp_u8,
-         store_s_srgb,
-         done_yet,
-         super;
+         store_s_srgb;

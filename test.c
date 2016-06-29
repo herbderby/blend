@@ -21,19 +21,6 @@ static void simple(int* dp, const int* sp, const char* cp, size_t n) {
     go(stages, n, dp);
 }
 
-static void faster(int* dp, const int* sp, const char* cp, size_t n) {
-    struct stage stages[] = {
-        {  load_d_srgb, &stages[1] },  // done_yet
-        {  load_s_srgb,       NULL },  // load_d
-
-        {      srcover,         sp },  // load_s
-        {      lerp_u8,       NULL },  // srcover
-        {        super,         cp },  // lerp_u8
-        {  load_s_srgb, &stages[2] },  // super
-    };
-    go(stages, n, dp);
-}
-
 static int dst[1024], src[1024];
 static char cov[1024];
 
@@ -45,7 +32,6 @@ int main(int argc, char** argv) {
             switch (choice) {
                 case 1: fused (dst, src, cov, 1024); break;
                 case 2: simple(dst, src, cov, 1024); break;
-                case 3: faster(dst, src, cov, 1024); break;
             }
         }
         return 0;
@@ -53,7 +39,6 @@ int main(int argc, char** argv) {
 
     fused (dst, src, cov, 1024);
     simple(dst, src, cov, 1024);
-    faster(dst, src, cov, 1024);
 
     return 0;
 }

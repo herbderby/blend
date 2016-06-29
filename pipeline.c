@@ -1,12 +1,18 @@
 #include "pipeline.h"
 #include "srgb.h"
 
-static void next_inc(const struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
-    stage->next(stage+1, n,dp,d,s);
+ABI void done_yet(const struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
+    if (n-- == 0) {
+        return;
+    }
+
+    stage->next(stage->ctx, n,dp,d,s);
 }
 
-static void next_ctx(const struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
-    stage->next(stage->ctx, n,dp,d,s);
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+static void next_inc(const struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
+    stage->next(stage+1, n,dp,d,s);
 }
 
 ABI void load_d_srgb(const struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
@@ -44,25 +50,4 @@ ABI void store_s_srgb(const struct stage* stage, size_t n, void* dp, __m128 d, _
     dst[n] = linear_to_srgb(s);
 
     next_inc(stage,n,dp,d,s);
-}
-
-ABI void done_yet(const struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
-    if (n-- == 0) {
-        return;
-    }
-
-    next_ctx(stage,n,dp,d,s);
-}
-
-ABI void super(const struct stage* stage, size_t n, void* dp, __m128 d, __m128 s) {
-    int* dst = dp;
-    dst[n] = linear_to_srgb(s);
-
-    if (n-- == 0) {
-        return;
-    }
-
-    d = srgb_to_linear(dst[n]);
-
-    next_ctx(stage,n,dp,d,s);
 }
