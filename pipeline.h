@@ -12,15 +12,14 @@ struct stage;
     #define ABI
 #endif
 
-typedef ABI void stage_fn(const struct stage*, size_t n, void* dp, __m128 d, __m128 s);
+typedef ABI void stage_fn(const struct stage*, size_t x, void* dp, __m128 d, __m128 s);
 
 struct stage {
     stage_fn* next;
     const void* ctx;
 };
 
-stage_fn done_yet,
-         just_ret,
+stage_fn done,
 
          load_d_srgb,
          load_s_srgb,
