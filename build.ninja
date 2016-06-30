@@ -14,15 +14,15 @@ rule link
 rule run
     command = ./$in > $out
 
-build bin/fused.o:    compile fused.c
-build bin/pipeline.o: compile pipeline.c
-build bin/srgb.o:     compile srgb.c
-build bin/test.o:     compile test.c
+build bin/speed_of_light.o: compile speed_of_light.c
+build bin/pipeline.o:       compile pipeline.c
+build bin/srgb.o:           compile srgb.c
+build bin/test.o:           compile test.c
 
-build bin/test: link $
-      bin/fused.o    $
-      bin/pipeline.o $
-      bin/srgb.o     $
-      bin/test.o     $
+build bin/test: link          $
+      bin/speed_of_light.o    $
+      bin/pipeline.o          $
+      bin/srgb.o              $
+      bin/test.o              $
 
 build bin/test.log: run bin/test

@@ -1,8 +1,8 @@
-#include "fused.h"
+#include "speed_of_light.h"
 #include "srgb.h"
 #include <immintrin.h>
 
-void fused(uint32_t* dst, const uint32_t* src, const uint8_t* cov, size_t n) {
+void speed_of_light(uint32_t* dst, const uint32_t* src, const uint8_t* cov, size_t n) {
     __m128 d, s;
     while (n --> 0) {
 #if 0
