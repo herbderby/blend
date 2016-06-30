@@ -10,8 +10,8 @@ ABI void shortcircuit_srcover_both_rgba8888(const struct stage* stage, size_t x,
     const uint32_t* src = stage->ctx;
     uint32_t* dst = dp;
     switch (src[x] >> 24) {
-        case 255: dst[x] = src[x];
-        case   0: return;
+        case 255: dst[x] = src[x]; return;
+        case   0:                  return;
     }
 
     next(stage,x,dp,d,s);
@@ -54,6 +54,7 @@ ABI void store_s_srgb(const struct stage* stage, size_t x, void* dp, __m128 d, _
     (void)stage;
     (void)x;
     (void)d;
+    return;
 }
 
 void run_pipeline(const struct stage* stages, stage_fn* start, void* dp, size_t n) {

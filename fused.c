@@ -7,7 +7,7 @@ void fused(uint32_t* dst, const uint32_t* src, const uint8_t* cov, size_t n) {
     while (n --> 0) {
 #if 0
         switch (*src >> 24) {
-            case 255: *dst = *src;
+            case 255: *dst = *src;  // fallthrough
             case   0: dst++; src++; cov++; continue;
         }
 #endif
