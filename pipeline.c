@@ -1,5 +1,6 @@
 #include "pipeline.h"
 #include "srgb.h"
+#include "sse.h"
 
 static void next(const struct stage* stage, size_t x, void* dp, __m128 d, __m128 s) {
     stage->next(stage+1, x,dp,d,s);
@@ -40,7 +41,7 @@ ABI void srcover(const struct stage* stage, size_t x, void* dp, __m128 d, __m128
 
 ABI void lerp_u8(const struct stage* stage, size_t x, void* dp, __m128 d, __m128 s) {
     const uint8_t* cov = stage->ctx;
-    __m128 c = _mm_set1_ps(cov[x] * (1/255.0f)),
+    __m128 c = _mm_mul_ps(better_cvtsi32_ss(cov[x]), _mm_set1_ps(1/255.0f)),
            C = _mm_sub_ps(_mm_set1_ps(1), c);
     s = _mm_add_ps(_mm_mul_ps(s, c), _mm_mul_ps(d, C));
 
