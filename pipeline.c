@@ -61,9 +61,6 @@ void run_pipeline(const struct stage* stages, stage_fn* start, void* dp, size_t 
     __m128 d = _mm_undefined_ps(),
            s = _mm_undefined_ps();
     for (size_t x = 0; x < n; x++) {
-        // comment out this line to run at half speed...  wtf?
-        __asm__ __volatile__("vxorps %xmm0, %xmm0, %xmm0");
-
         start(stages, x, dp, d,s);
     }
 }

@@ -5,11 +5,20 @@
 
 extern const float srgb_to_linear_table[256];
 
+static inline __m128 better_cvtsi32_ss(int x) {
+    // Using movd + cvtdq2ps instead of cvtsi2ss breaks the dependency on the
+    // previous top three lanes of whatever scratch register this uses,
+    // allowing much better out-of-order execution.
+    return _mm_cvtepi32_ps(_mm_cvtsi32_si128(x));
+}
+
 static inline __m128 srgb_to_linear(uint32_t srgb) {
+    __m128 a = _mm_mul_ps(better_cvtsi32_ss(srgb>>24), _mm_set1_ps(1/255.0f));
+
     return _mm_setr_ps(srgb_to_linear_table[(srgb    ) & 0xff],
                        srgb_to_linear_table[(srgb>> 8) & 0xff],
                        srgb_to_linear_table[(srgb>>16) & 0xff],
-                       (srgb>>24) * (1/255.0f));
+                       a[0]);
 }
 
 static inline uint32_t linear_to_srgb(__m128 linear) {
