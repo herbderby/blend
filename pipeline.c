@@ -48,21 +48,21 @@ static bool store_s_srgb_(const void* UNUSED, size_t x, void* dp, __m128* UNUSED
 }
 
 
-#define STAGE(name)                                                                    \
+#define EXPORT_STAGE(name)                                                             \
     ABI void name(const struct stage* stage, size_t x, void* dp, __m128 d, __m128 s) { \
         if (!name##_(stage->ctx, x,dp,&d,&s)) {                                        \
             stage->next(stage+1, x,dp,d,s);                                            \
         }                                                                              \
     }
 
-    STAGE(shortcircuit_srcover_both_rgba8888)
-    STAGE(load_d_srgb)
-    STAGE(load_s_srgb)
-    STAGE(srcover)
-    STAGE(lerp_u8)
-    STAGE(store_s_srgb)
+    EXPORT_STAGE(shortcircuit_srcover_both_rgba8888)
+    EXPORT_STAGE(load_d_srgb)
+    EXPORT_STAGE(load_s_srgb)
+    EXPORT_STAGE(srcover)
+    EXPORT_STAGE(lerp_u8)
+    EXPORT_STAGE(store_s_srgb)
 
-#undef STAGE
+#undef EXPORT_STAGE
 
 void run_pipeline(const struct stage* stages, stage_fn* start, void* dp, size_t n) {
     __m128 d = _mm_undefined_ps(),
