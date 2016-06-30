@@ -5,11 +5,11 @@
 static void pipeline(uint32_t* dp, const uint32_t* sp, const uint8_t* cp, size_t n) {
 #if 0
     stage_fn* start = shortcircuit_srcover_both_rgba8888;
-    struct stage stages[] = {
+    stage stages[] = {
         {  load_d_srgb,  sp  },  // shortcircuit_srcover_both_rgba8888
 #else
     stage_fn* start = load_d_srgb;
-    struct stage stages[] = {
+    stage stages[] = {
 #endif
         {  load_s_srgb, NULL },  // load_d_srgb
         {      srcover,  sp  },  // load_s_srgb

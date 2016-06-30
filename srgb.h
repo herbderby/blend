@@ -32,7 +32,7 @@ static inline uint32_t linear_to_srgb(__m128 linear) {
     srgb = _mm_max_ps(srgb, _mm_set1_ps(0));
     srgb = _mm_min_ps(srgb, _mm_set1_ps(255));
 
-    return (uint32_t)
+    return static_cast<uint32_t>(
         _mm_cvtsi128_si32(_mm_shuffle_epi8(_mm_cvtps_epi32(srgb),
-                                           _mm_setr_epi8(0,4,8,12,0,0,0,0,0,0,0,0,0,0,0,0)));
+                                           _mm_setr_epi8(0,4,8,12,0,0,0,0,0,0,0,0,0,0,0,0))));
 }

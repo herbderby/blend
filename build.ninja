@@ -1,9 +1,9 @@
 builddir = bin
 
-cc = clang -fcolor-diagnostics -Weverything
+cc = clang -fcolor-diagnostics -Weverything -std=c++11 -Wno-c++98-compat
 cflags = -Os -momit-leaf-frame-pointer -march=native -ffp-contract=fast -Werror
 
-rule compile
+rule cc
     command = $cc -c $in -MD -MF $out.d $cflags -o $out
     depfile = $out.d
     deps    = gcc
@@ -14,9 +14,9 @@ rule link
 rule run
     command = ./$in > $out
 
-build bin/pipeline.o: compile pipeline.c
-build bin/srgb.o:     compile srgb.c
-build bin/test.o:     compile test.c
+build bin/pipeline.o: cc pipeline.cc
+build bin/srgb.o:     cc srgb.cc
+build bin/test.o:     cc test.cc
 
 build bin/test: link  $
       bin/pipeline.o  $

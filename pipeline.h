@@ -13,7 +13,7 @@ struct stage;
     #define ABI
 #endif
 
-typedef ABI void stage_fn(const struct stage*, size_t x, void* dp, __m128 d, __m128 s);
+typedef ABI void stage_fn(const stage*, size_t x, void* dp, __m128 d, __m128 s);
 
 struct stage {
     stage_fn* next;
@@ -28,6 +28,6 @@ stage_fn shortcircuit_srcover_both_rgba8888,
          lerp_u8,
          store_s_srgb;
 
-void run_pipeline(const struct stage*, stage_fn* start, void* dp, size_t n);
+void run_pipeline(const stage*, stage_fn* start, void* dp, size_t n);
 
 void fused(uint32_t* dst, const uint32_t* src, const uint8_t* cov, size_t n);
