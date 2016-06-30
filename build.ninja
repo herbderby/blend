@@ -1,7 +1,7 @@
 builddir = bin
 
 cc = clang -fcolor-diagnostics -Weverything -std=c++11 -Wno-c++98-compat
-cflags = -Os -momit-leaf-frame-pointer -march=native -ffp-contract=fast -Werror
+cflags = -Os -msse4.1 -Werror
 
 rule cc
     command = $cc -c $in -MD -MF $out.d $cflags -o $out
