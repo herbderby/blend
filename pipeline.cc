@@ -2,8 +2,7 @@
 #include "srgb.h"
 #include "sse.h"
 
-static bool shortcircuit_srcover_both_rgba8888(const void* ctx, size_t x, void* dp,
-                                               __m128*, __m128*) {
+static bool shortcircuit_srcover_both_srgb(const void* ctx, size_t x, void* dp, __m128*, __m128*) {
     auto src = static_cast<const uint32_t*>(ctx);
     auto dst = static_cast<      uint32_t*>( dp);
     switch (src[x] >> 24) {
@@ -46,14 +45,14 @@ static bool store_s_srgb(const void*, size_t x, void* dp, __m128*, __m128* s) {
 }
 
 
-#define EXPORT_STAGE(name)                                                             \
+#define EXPORT_STAGE(name)                                                      \
     ABI void name(const stage* stage, size_t x, void* dp, __m128 d, __m128 s) { \
-        if (!name(stage->ctx, x,dp,&d,&s)) {                                           \
-            stage->next(stage+1, x,dp,d,s);                                            \
-        }                                                                              \
+        if (!name(stage->ctx, x,dp,&d,&s)) {                                    \
+            stage->next(stage+1, x,dp,d,s);                                     \
+        }                                                                       \
     }
 
-    EXPORT_STAGE(shortcircuit_srcover_both_rgba8888)
+    EXPORT_STAGE(shortcircuit_srcover_both_srgb)
     EXPORT_STAGE(load_d_srgb)
     EXPORT_STAGE(load_s_srgb)
     EXPORT_STAGE(srcover)
@@ -74,11 +73,11 @@ void fused(uint32_t* dst, const uint32_t* src, const uint8_t* cov, size_t n) {
     __m128 d = _mm_undefined_ps(),
            s = _mm_undefined_ps();
     for (size_t x = 0; x < n; x++) {
-        //if (shortcircuit_srcover_both_rgba8888( src, x,dst,&d,&s)) continue;
-        if (                       load_d_srgb(NULL, x,dst,&d,&s)) continue;
-        if (                       load_s_srgb( src, x,dst,&d,&s)) continue;
-        if (                           srcover(NULL, x,dst,&d,&s)) continue;
-        if (                           lerp_u8( cov, x,dst,&d,&s)) continue;
-        if (                      store_s_srgb(NULL, x,dst,&d,&s)) continue;
+        //if (shortcircuit_srcover_both_srgb( src, x,dst,&d,&s)) continue;
+        if (                   load_d_srgb(NULL, x,dst,&d,&s)) continue;
+        if (                   load_s_srgb( src, x,dst,&d,&s)) continue;
+        if (                       srcover(NULL, x,dst,&d,&s)) continue;
+        if (                       lerp_u8( cov, x,dst,&d,&s)) continue;
+        if (                  store_s_srgb(NULL, x,dst,&d,&s)) continue;
     }
 }

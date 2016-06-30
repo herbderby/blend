@@ -20,8 +20,7 @@ struct stage {
     const void* ctx;
 };
 
-stage_fn shortcircuit_srcover_both_rgba8888,
-
+stage_fn shortcircuit_srcover_both_srgb,
          load_d_srgb,
          load_s_srgb,
          srcover,
