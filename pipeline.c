@@ -5,10 +5,6 @@ static void next(const struct stage* stage, size_t x, void* dp, __m128 d, __m128
     stage->next(stage+1, x,dp,d,s);
 }
 
-static void done(const struct stage* stage, size_t x, void* dp, __m128 d, __m128 s) {
-    (void)stage;  (void)x;  (void)dp;  (void)d;  (void)s;
-}
-
 ABI void shortcircuit_srcover_both_rgba8888(const struct stage* stage, size_t x, void* dp,
                                             __m128 d, __m128 s) {
     const uint32_t* src = stage->ctx;
@@ -55,7 +51,9 @@ ABI void store_s_srgb(const struct stage* stage, size_t x, void* dp, __m128 d, _
     uint32_t* dst = dp;
     dst[x] = linear_to_srgb(s);
 
-    done(stage,x,dp,d,s);
+    (void)stage;
+    (void)x;
+    (void)d;
 }
 
 void run_pipeline(const struct stage* stages, stage_fn* start, void* dp, size_t n) {
