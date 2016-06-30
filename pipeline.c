@@ -9,15 +9,27 @@ static void done(const struct stage* stage, size_t x, void* dp, __m128 d, __m128
     (void)stage;  (void)x;  (void)dp;  (void)d;  (void)s;
 }
 
+ABI void shortcircuit_srcover_both_rgba8888(const struct stage* stage, size_t x, void* dp,
+                                            __m128 d, __m128 s) {
+    const uint32_t* src = stage->ctx;
+    uint32_t* dst = dp;
+    switch (src[x] >> 24) {
+        case 255: dst[x] = src[x];
+        case   0: return;
+    }
+
+    next(stage,x,dp,d,s);
+}
+
 ABI void load_d_srgb(const struct stage* stage, size_t x, void* dp, __m128 d, __m128 s) {
-    int* dst = dp;
+    uint32_t* dst = dp;
     d = srgb_to_linear(dst[x]);
 
     next(stage,x,dp,d,s);
 }
 
 ABI void load_s_srgb(const struct stage* stage, size_t x, void* dp, __m128 d, __m128 s) {
-    const int* src = stage->ctx;
+    const uint32_t* src = stage->ctx;
     s = srgb_to_linear(src[x]);
 
     next(stage,x,dp,d,s);
@@ -31,7 +43,7 @@ ABI void srcover(const struct stage* stage, size_t x, void* dp, __m128 d, __m128
 }
 
 ABI void lerp_u8(const struct stage* stage, size_t x, void* dp, __m128 d, __m128 s) {
-    const char* cov = stage->ctx;
+    const uint8_t* cov = stage->ctx;
     __m128 c = _mm_set1_ps(cov[x] * (1/255.0f)),
            C = _mm_sub_ps(_mm_set1_ps(1), c);
     s = _mm_add_ps(_mm_mul_ps(s, c), _mm_mul_ps(d, C));
@@ -40,7 +52,7 @@ ABI void lerp_u8(const struct stage* stage, size_t x, void* dp, __m128 d, __m128
 }
 
 ABI void store_s_srgb(const struct stage* stage, size_t x, void* dp, __m128 d, __m128 s) {
-    int* dst = dp;
+    uint32_t* dst = dp;
     dst[x] = linear_to_srgb(s);
 
     done(stage,x,dp,d,s);

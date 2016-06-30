@@ -19,7 +19,9 @@ struct stage {
     const void* ctx;
 };
 
-stage_fn load_d_srgb,
+stage_fn shortcircuit_srcover_both_rgba8888,
+
+         load_d_srgb,
          load_s_srgb,
          srcover,
          lerp_u8,

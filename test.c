@@ -3,9 +3,15 @@
 #include <assert.h>
 #include <stdlib.h>
 
-static void pipeline(int* dp, const int* sp, const char* cp, size_t n) {
+static void pipeline(uint32_t* dp, const uint32_t* sp, const uint8_t* cp, size_t n) {
+#if 0
+    stage_fn* start = shortcircuit_srcover_both_rgba8888;
+    struct stage stages[] = {
+        {  load_d_srgb,  sp  },  // shortcircuit_srcover_both_rgba8888
+#else
     stage_fn* start = load_d_srgb;
     struct stage stages[] = {
+#endif
         {  load_s_srgb, NULL },  // load_d_srgb
         {      srcover,  sp  },  // load_s_srgb
         {      lerp_u8, NULL },  // srcover
@@ -16,8 +22,8 @@ static void pipeline(int* dp, const int* sp, const char* cp, size_t n) {
     run_pipeline(stages, start, dp, n);
 }
 
-static int dst[1024], src[1024];
-static char cov[1024];
+static uint32_t dst[1024], src[1024];
+static uint8_t cov[1024];
 
 int main(int argc, char** argv) {
     int choice = argc > 1 ? atoi(argv[1]) : 0;

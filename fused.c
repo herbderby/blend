@@ -2,9 +2,16 @@
 #include "srgb.h"
 #include <immintrin.h>
 
-void fused(int* dst, const int* src, const char* cov, size_t n) {
+void fused(uint32_t* dst, const uint32_t* src, const uint8_t* cov, size_t n) {
     __m128 d, s;
-    do {
+    while (n --> 0) {
+#if 0
+        switch (*src >> 24) {
+            case 255: *dst = *src;
+            case   0: dst++; src++; cov++; continue;
+        }
+#endif
+
         d = srgb_to_linear(*dst);
         s = srgb_to_linear(*src);
 
@@ -20,5 +27,5 @@ void fused(int* dst, const int* src, const char* cov, size_t n) {
         dst++;
         src++;
         cov++;
-    } while (--n > 0);
+    }
 }

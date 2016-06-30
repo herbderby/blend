@@ -4,15 +4,14 @@
 
 extern const float srgb_to_linear_table[256];
 
-static inline __m128 srgb_to_linear(int srgb) {
-    unsigned u = (unsigned)srgb;
-    return _mm_setr_ps(srgb_to_linear_table[(u    ) & 0xff],
-                       srgb_to_linear_table[(u>> 8) & 0xff],
-                       srgb_to_linear_table[(u>>16) & 0xff],
-                       (u>>24) * (1/255.0f));
+static inline __m128 srgb_to_linear(uint32_t srgb) {
+    return _mm_setr_ps(srgb_to_linear_table[(srgb    ) & 0xff],
+                       srgb_to_linear_table[(srgb>> 8) & 0xff],
+                       srgb_to_linear_table[(srgb>>16) & 0xff],
+                       (srgb>>24) * (1/255.0f));
 }
 
-static inline int linear_to_srgb(__m128 linear) {
+static inline uint32_t linear_to_srgb(__m128 linear) {
     __m128 rsqrt = _mm_rsqrt_ps(linear),
             sqrt = _mm_rcp_ps(rsqrt),
             ftrt = _mm_rsqrt_ps(rsqrt);
@@ -29,6 +28,7 @@ static inline int linear_to_srgb(__m128 linear) {
     srgb = _mm_max_ps(srgb, _mm_set1_ps(0));
     srgb = _mm_min_ps(srgb, _mm_set1_ps(255));
 
-    return _mm_cvtsi128_si32(_mm_shuffle_epi8(_mm_cvtps_epi32(srgb),
-                                              _mm_setr_epi8(0,4,8,12,0,0,0,0,0,0,0,0,0,0,0,0)));
+    return (uint32_t)
+        _mm_cvtsi128_si32(_mm_shuffle_epi8(_mm_cvtps_epi32(srgb),
+                                           _mm_setr_epi8(0,4,8,12,0,0,0,0,0,0,0,0,0,0,0,0)));
 }
