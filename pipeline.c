@@ -51,6 +51,7 @@ void run_pipeline(const struct stage* stages, stage_fn* start, void* dp, size_t 
            s = _mm_undefined_ps();
     d = _mm_setzero_ps();  // comment out this line to run at half speed... wtf?
     for (size_t x = 0; x < n; x++) {
+        //_mm256_zeroall();  // when using vectorcall, keep this line commented to run at half speed
         start(stages, x, dp, d,s);
     }
 }
