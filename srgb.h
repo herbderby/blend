@@ -1,6 +1,7 @@
 #pragma once
 
 #include <immintrin.h>
+#include <stdint.h>
 
 extern const float srgb_to_linear_table[256];
 
