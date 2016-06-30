@@ -1,6 +1,7 @@
 #pragma once
 
 #include <immintrin.h>
+#include <stdint.h>
 
 struct stage;
 
@@ -28,3 +29,5 @@ stage_fn shortcircuit_srcover_both_rgba8888,
          store_s_srgb;
 
 void run_pipeline(const struct stage*, stage_fn* start, void* dp, size_t n);
+
+void fused(uint32_t* dst, const uint32_t* src, const uint8_t* cov, size_t n);

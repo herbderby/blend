@@ -33,6 +33,7 @@ int main(int argc, char** argv) {
             switch (choice) {
                 case 1: speed_of_light(dst, src, cov, 1024); break;
                 case 2: pipeline      (dst, src, cov, 1024); break;
+                case 3: fused         (dst, src, cov, 1024); break;
             }
         }
         return 0;
@@ -40,6 +41,7 @@ int main(int argc, char** argv) {
 
     speed_of_light(dst, src, cov, 1024);
     pipeline      (dst, src, cov, 1024);
+    fused         (dst, src, cov, 1024);
 
     return 0;
 }
