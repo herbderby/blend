@@ -45,3 +45,11 @@ ABI void store_s_srgb(const struct stage* stage, size_t x, void* dp, __m128 d, _
 
     done(stage,x,dp,d,s);
 }
+
+void run_pipeline(const struct stage* stages, stage_fn* start, void* dp, size_t n) {
+    __m128 d = _mm_setzero_ps(),
+           s = _mm_setzero_ps();
+    for (size_t x = 0; x < n; x++) {
+        start(stages, x, dp, d,s);
+    }
+}

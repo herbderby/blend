@@ -13,9 +13,7 @@ static void pipeline(int* dp, const int* sp, const char* cp, size_t n) {
         {         NULL, NULL },  // store_s_srgb
     };
 
-    for (size_t x = 0; x < n; x++) {
-        start(stages, x, dp, _mm_setzero_ps(), _mm_setzero_ps());
-    }
+    run_pipeline(stages, start, dp, n);
 }
 
 static int dst[1024], src[1024];

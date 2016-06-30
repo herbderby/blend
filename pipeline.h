@@ -24,3 +24,5 @@ stage_fn load_d_srgb,
          srcover,
          lerp_u8,
          store_s_srgb;
+
+void run_pipeline(const struct stage*, stage_fn* start, void* dp, size_t n);
