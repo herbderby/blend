@@ -26,6 +26,8 @@ static inline int linear_to_srgb(__m128 linear) {
     __m128 srgb = _mm_blendv_ps(hi, lo, _mm_cmplt_ps(linear, _mm_set1_ps(0.00349f)));
 
     srgb = _mm_setr_ps(srgb[0], srgb[1], srgb[2], (linear[3] * 255.0f));
+    srgb = _mm_max_ps(srgb, _mm_set1_ps(0));
+    srgb = _mm_min_ps(srgb, _mm_set1_ps(255));
 
     return _mm_cvtsi128_si32(_mm_shuffle_epi8(_mm_cvtps_epi32(srgb),
                                               _mm_setr_epi8(0,4,8,12,0,0,0,0,0,0,0,0,0,0,0,0)));
