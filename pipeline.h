@@ -24,6 +24,10 @@ struct pipeline {
         const void* ctx;
     };
 
+private:
+    void add_avx2_stage(Stage, const void* ctx);
+
     std::vector<stage> narrow_stages,
-                         wide_stages;
+                         wide_stages,
+                         avx2_stages;
 };

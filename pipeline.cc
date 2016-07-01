@@ -1,20 +1,9 @@
+#include "abi.h"
 #include "pipeline.h"
 #include "srgb.h"
 #include "sse.h"
-#include <algorithm>
 #include <assert.h>
 #include <immintrin.h>
-#include <vector>
-
-#if 0
-    #define ABI __attribute__((vectorcall))
-#elif 0
-    #define ABI __attribute__((sysv_abi))
-#else
-    #define ABI
-#endif
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
 using narrow_xmm = ABI void(*)(const pipeline::stage*, size_t, void*, __m128, __m128);
 
@@ -154,23 +143,25 @@ void pipeline::add_stage(Stage st, const void* ctx) {
 
     narrow_xmm n = nullptr;
     switch (st) {
-        case load_d_srgb:                    n = ::load_d_srgb;                    break;
-        case load_s_srgb:                    n = ::load_s_srgb;                    break;
-        case srcover:                        n = ::srcover;                        break;
-        case lerp_u8:                        n = ::lerp_u8;                        break;
-        case store_s_srgb:                   n = ::store_s_srgb;                   break;
+        case load_d_srgb:   n = ::load_d_srgb;  break;
+        case load_s_srgb:   n = ::load_s_srgb;  break;
+        case srcover:       n = ::srcover;      break;
+        case lerp_u8:       n = ::lerp_u8;      break;
+        case store_s_srgb:  n = ::store_s_srgb; break;
     }
     narrow_stages.push_back({ reinterpret_cast<void(*)(void)>(n), ctx });
 
     wide_xmm w = nullptr;
     switch (st) {
-        case load_d_srgb:                    w = ::load_d_srgb;                    break;
-        case load_s_srgb:                    w = ::load_s_srgb;                    break;
-        case srcover:                        w = ::srcover;                        break;
-        case lerp_u8:                        w = ::lerp_u8;                        break;
-        case store_s_srgb:                   w = ::store_s_srgb;                   break;
+        case load_d_srgb:   w = ::load_d_srgb;  break;
+        case load_s_srgb:   w = ::load_s_srgb;  break;
+        case srcover:       w = ::srcover;      break;
+        case lerp_u8:       w = ::lerp_u8;      break;
+        case store_s_srgb:  w = ::store_s_srgb; break;
     }
     wide_stages.push_back({ reinterpret_cast<void(*)(void)>(w), ctx });
+
+    this->add_avx2_stage(st, ctx);
 }
 
 static void rewire(std::vector<pipeline::stage>* stages) {
@@ -186,6 +177,7 @@ static void rewire(std::vector<pipeline::stage>* stages) {
 void pipeline::ready() {
     rewire(&narrow_stages);
     rewire(&  wide_stages);
+    rewire(&  avx2_stages);
 }
 
 void pipeline::call(void* dp, size_t n) const {
