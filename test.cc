@@ -15,8 +15,8 @@ static void with_pipeline(uint32_t* dp, const uint32_t* sp, const uint8_t* cp, s
     p.call(dp, n);
 }
 
-static uint32_t dst[1024], src[1024];
-static uint8_t cov[1024];
+static uint32_t dst[1023], src[1023];
+static uint8_t cov[1023];
 
 int main(int argc, char** argv) {
     int choice = argc > 1 ? atoi(argv[1]) : 0;
@@ -24,15 +24,15 @@ int main(int argc, char** argv) {
     if (choice) {
         for (int j = 0; j < 100000; j++) {
             switch (choice) {
-                case 1: fused        (dst, src, cov, 1024); break;
-                case 2: with_pipeline(dst, src, cov, 1024); break;
+                case 1: fused        (dst, src, cov, 1023); break;
+                case 2: with_pipeline(dst, src, cov, 1023); break;
             }
         }
         return 0;
     }
 
-    fused        (dst, src, cov, 1024);
-    with_pipeline(dst, src, cov, 1024);
+    fused        (dst, src, cov, 1023);
+    with_pipeline(dst, src, cov, 1023);
 
     return 0;
 }
