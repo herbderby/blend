@@ -3,18 +3,15 @@
 #include <stdlib.h>
 
 static void with_pipeline(uint32_t* dp, const uint32_t* sp, const uint8_t* cp, size_t n) {
-    static pipeline* p = nullptr;
-    if (!p) {
-        p = new pipeline;
-        p->add_stage( load_d_srgb, nullptr);
-        p->add_stage( load_s_srgb,    sp  );
-        p->add_stage(     srcover, nullptr);
-        p->add_stage(     lerp_u8,    cp  );
-        p->add_stage(store_s_srgb, nullptr);
-        p->ready();
-    }
+    pipeline p;
+    p.add_stage( load_d_srgb, nullptr);
+    p.add_stage( load_s_srgb,    sp  );
+    p.add_stage(     srcover, nullptr);
+    p.add_stage(     lerp_u8,    cp  );
+    p.add_stage(store_s_srgb, nullptr);
+    p.ready();
 
-    p->call(dp, n);
+    p.call(dp, n);
 }
 
 static uint32_t dst[1024], src[1024];
