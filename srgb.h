@@ -5,9 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 
-extern const float    srgb_to_float[256];
-extern const int16_t  srgb_to_q15  [256];
-extern const uint8_t  u12_to_srgb [4097];
+extern const float srgb_to_float[256];
 
 static inline __m128 srgb_to_floats(uint32_t srgb) {
     __m128 a = _mm_mul_ps(better_cvtsi32_ss(srgb>>24), _mm_set1_ps(1/255.0f));
@@ -81,35 +79,4 @@ static inline void floats_to_srgb_T(uint32_t srgb[4], __m128 r, __m128 g, __m128
                    _mm_or_si128(_mm_slli_epi32(_mm_cvtps_epi32(b), 16),
                                 _mm_slli_epi32(_mm_cvtps_epi32(a), 24))));
     _mm_storeu_si128(reinterpret_cast<__m128i*>(srgb), rgba);
-}
-
-template <typename T>
-static inline int16_t byte_to_q15(T b) {
-    return static_cast<uint8_t>(b) * -0x8000 / 0xff;
-}
-
-static inline __m128i srgb_to_q15s(uint64_t srgb) {
-    return _mm_setr_epi16(srgb_to_q15[(srgb    ) & 0xff],
-                          srgb_to_q15[(srgb>> 8) & 0xff],
-                          srgb_to_q15[(srgb>>16) & 0xff],
-                          byte_to_q15( srgb>>24        ),
-                          srgb_to_q15[(srgb>>32) & 0xff],
-                          srgb_to_q15[(srgb>>40) & 0xff],
-                          srgb_to_q15[(srgb>>48) & 0xff],
-                          byte_to_q15( srgb>>56        ));
-}
-
-static inline uint64_t q15s_to_srgb(__m128i q15) {
-    __m128i u12 = _mm_sub_epi16(_mm_setzero_si128(), _mm_srai_epi16(q15, 3));
-    uint16_t l[8];
-    memcpy(l, &u12, 16);
-
-    return (static_cast<uint64_t>(u12_to_srgb[l[0]]) <<  0)
-         | (static_cast<uint64_t>(u12_to_srgb[l[1]]) <<  8)
-         | (static_cast<uint64_t>(u12_to_srgb[l[2]]) << 16)
-         | (static_cast<uint64_t>(l[3] * 0xff / 0x1000    ) << 24)
-         | (static_cast<uint64_t>(u12_to_srgb[l[4]]) << 32)
-         | (static_cast<uint64_t>(u12_to_srgb[l[5]]) << 40)
-         | (static_cast<uint64_t>(u12_to_srgb[l[6]]) << 48)
-         | (static_cast<uint64_t>(l[7] * 0xff / 0x1000    ) << 56);
 }
