@@ -4,14 +4,14 @@
 #include <immintrin.h>
 #include <stdint.h>
 
-extern const float srgb_to_linear_table[256];
+extern const float srgb_to_linear_float[256];
 
 static inline __m128 srgb_to_linear(uint32_t srgb) {
     __m128 a = _mm_mul_ps(better_cvtsi32_ss(srgb>>24), _mm_set1_ps(1/255.0f));
 
-    return _mm_setr_ps(srgb_to_linear_table[(srgb    ) & 0xff],
-                       srgb_to_linear_table[(srgb>> 8) & 0xff],
-                       srgb_to_linear_table[(srgb>>16) & 0xff],
+    return _mm_setr_ps(srgb_to_linear_float[(srgb    ) & 0xff],
+                       srgb_to_linear_float[(srgb>> 8) & 0xff],
+                       srgb_to_linear_float[(srgb>>16) & 0xff],
                        a[0]);
 }
 
