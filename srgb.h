@@ -6,7 +6,7 @@
 #include <string.h>
 
 extern const float    srgb_to_linear_float[256];
-extern const uint16_t srgb_to_linear_u15  [256];
+extern const int16_t  srgb_to_linear_q15  [256];
 extern const uint8_t  linear_u12_to_srgb [4097];
 
 static inline __m128 srgb_to_linear_floats(uint32_t srgb) {
@@ -40,19 +40,23 @@ static inline uint32_t linear_floats_to_srgb(__m128 linear) {
                                            _mm_setr_epi8(0,4,8,12,0,0,0,0,0,0,0,0,0,0,0,0))));
 }
 
-static inline __m128i srgb_to_linear_u15s(uint64_t srgb) {
-    return _mm_setr_epi16(static_cast<short>( srgb_to_linear_u15[(srgb    ) & 0xff] ),
-                          static_cast<short>( srgb_to_linear_u15[(srgb>> 8) & 0xff] ),
-                          static_cast<short>( srgb_to_linear_u15[(srgb>>16) & 0xff] ),
-                          static_cast<short>( (srgb>>24) * 0x8000 / 0xff            ),
-                          static_cast<short>( srgb_to_linear_u15[(srgb>>32) & 0xff] ),
-                          static_cast<short>( srgb_to_linear_u15[(srgb>>40) & 0xff] ),
-                          static_cast<short>( srgb_to_linear_u15[(srgb>>48) & 0xff] ),
-                          static_cast<short>( (srgb>>56) * 0x8000 / 0xff            ));
+static inline __m128i srgb_to_linear_q15s(uint64_t srgb) {
+    auto alpha = [](uint64_t a) -> int16_t {
+        return static_cast<uint8_t>(a) * -0x8000 / 0xff;
+    };
+    return _mm_setr_epi16(srgb_to_linear_q15[(srgb    ) & 0xff],
+                          srgb_to_linear_q15[(srgb>> 8) & 0xff],
+                          srgb_to_linear_q15[(srgb>>16) & 0xff],
+                          alpha(srgb>>24)                      ,
+                          srgb_to_linear_q15[(srgb>>32) & 0xff],
+                          srgb_to_linear_q15[(srgb>>40) & 0xff],
+                          srgb_to_linear_q15[(srgb>>48) & 0xff],
+                          alpha(srgb>>56)                      );
 }
 
-static inline uint64_t linear_u15s_to_srgb(__m128i u15) {
-    __m128i u12 = _mm_srli_epi16(u15, 3);
+/* TODO, something like...
+static inline uint64_t linear_q15s_to_srgb(__m128i q15) {
+    __m128i u12 = _mm_srli_epi16(q15, 3);
     uint16_t l[8];
     memcpy(l, &u12, 16);
 
@@ -65,3 +69,4 @@ static inline uint64_t linear_u15s_to_srgb(__m128i u15) {
          | (static_cast<uint64_t>(linear_u12_to_srgb[l[6]]) << 48)
          | (static_cast<uint64_t>(l[7] * 0xff / 0x1000    ) << 56);
 }
+*/
