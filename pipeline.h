@@ -1,28 +1,27 @@
 #pragma once
 
 #include <stdint.h>
-#include <memory>
+#include <vector>
 
 void fused(uint32_t* dst, const uint32_t* src, const uint8_t* cov, size_t n);
 
-enum class Stage {
-    shortcircuit_srcover_both_srgb,
-    load_d_srgb,
-    load_s_srgb,
-    srcover,
-    lerp_u8,
-    store_s_srgb,
-};
-
 struct pipeline {
-    pipeline();
-    ~pipeline();
-
+    enum Stage {
+        shortcircuit_srcover_both_srgb,
+        load_d_srgb,
+        load_s_srgb,
+        srcover,
+        lerp_u8,
+        store_s_srgb,
+    };
     void add_stage(Stage, const void* ctx);
     void ready();
 
-    void call(void* dp, size_t n, bool use_q15_stages) const;
+    void call(void* dp, size_t n) const;
 
-    struct Impl;
-    std::unique_ptr<Impl> impl;
+    struct stage {
+        void (*next)(void);
+        const void* ctx;
+    };
+    std::vector<stage> stages;
 };
