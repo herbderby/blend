@@ -196,24 +196,20 @@ void pipeline::ready() {
     ready_stages(&impl->stages_q15);
 }
 
-void pipeline::call(void* dp, size_t n, bool use_float_stages) const {
-    if (use_float_stages) {
-        assert (impl->stages_f.size() > 0);
+void pipeline::call(void* dp, size_t n, bool use_q15_stages) const {
+    assert (impl->stages_f  .size() > 0);
+    assert (impl->stages_q15.size() > 0);
 
-        __m128 d = _mm_undefined_ps(),
-               s = _mm_undefined_ps();
-        for (size_t x = 0; x < n; x++) {
-            auto start = impl->stages_f.back().next;
-            start(impl->stages_f.data(), x, dp, d,s);
-        }
-    } else {
-        assert (impl->stages_q15.size() > 0);
-
-        __m128i d = _mm_undefined_si128(),
-                s = _mm_undefined_si128();
-        for (size_t x = 0; x < n/2; x++) {  // TODO: handle odd n
+    if (use_q15_stages) {
+        for (size_t x = 0; x < n/2; x++) {
             auto start = impl->stages_q15.back().next;
-            start(impl->stages_q15.data(), x, dp, d,s);
+            start(impl->stages_q15.data(), x, dp, _mm_undefined_si128(), _mm_undefined_si128());
         }
+        n &= 1;
+    }
+
+    for (size_t x = 0; x < n; x++) {
+        auto start = impl->stages_f.back().next;
+        start(impl->stages_f.data(), x, dp, _mm_undefined_ps(), _mm_undefined_ps());
     }
 }

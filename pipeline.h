@@ -21,7 +21,7 @@ struct pipeline {
     void add_stage(Stage, const void* ctx);
     void ready();
 
-    void call(void* dp, size_t n, bool use_float_stages) const;
+    void call(void* dp, size_t n, bool use_q15_stages) const;
 
     struct Impl;
     std::unique_ptr<Impl> impl;
