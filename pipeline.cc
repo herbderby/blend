@@ -188,8 +188,9 @@ void pipeline::call(void* dp, size_t n) const {
 
     __m128 u = _mm_undefined_ps();
 
-    size_t mask = 4-1;
-    for (size_t x = 0; x < (n & ~mask); x += 4) {
+    size_t stride = 4;
+    size_t mask = stride-1;
+    for (size_t x = 0; x < (n & ~mask); x += stride) {
         auto start = reinterpret_cast<wide_xmm>(wide_stages.back().next);
         start(wide_stages.data(), x, dp, u,u,u,u, u,u,u,u);
     }
