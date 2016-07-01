@@ -5,6 +5,26 @@
 #include <assert.h>
 #include <immintrin.h>
 
+#if 0
+static inline void srgb_to_floats_T(const uint32_t srgb[8],
+                                    __m256* r, __m256* g, __m256* b, __m256* a) {
+    __m256i v = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(srgb));
+
+    *r = _mm256_i32gather_ps(srgb_to_float,
+                             _mm256_and_si256(                  v     , _mm256_set1_epi32(0xff)),
+                             4);
+    *g = _mm256_i32gather_ps(srgb_to_float,
+                             _mm256_and_si256(_mm256_srli_epi32(v,  8), _mm256_set1_epi32(0xff)),
+                             4);
+    *b = _mm256_i32gather_ps(srgb_to_float,
+                             _mm256_and_si256(_mm256_srli_epi32(v, 16), _mm256_set1_epi32(0xff)),
+                             4);
+
+    *a = _mm256_mul_ps(_mm256_set1_ps(1/255.0f),
+                       _mm256_cvtepi32_ps(_mm256_srli_epi32(v, 24)));
+}
+#else
+
 static inline void srgb_to_floats_T(const uint32_t srgb[8],
                                     __m256* r, __m256* g, __m256* b, __m256* a) {
     *r = _mm256_setr_ps(srgb_to_float[(srgb[0] >>  0) & 0xff],
@@ -38,6 +58,7 @@ static inline void srgb_to_floats_T(const uint32_t srgb[8],
     *a = _mm256_mul_ps(_mm256_set1_ps(1/255.0f),
                        _mm256_cvtepi32_ps(_mm256_srli_epi32(_mm256_loadu_si256(p), 24)));
 }
+#endif
 
 static inline __m256 clamp_0_255(__m256 srgb) {
     // max/min order and argument order both matter.  This clamps NaN to 0.
