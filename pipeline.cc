@@ -42,7 +42,7 @@ static bool lerp_u8(const void* ctx, size_t x, void*, __m128* d, __m128* s) {
 
 static bool store_s_srgb(const void*, size_t x, void* dp, __m128*, __m128* s) {
     auto dst = static_cast<uint32_t*>(dp);
-    dst[x] = linear_to_srgb(*s);
+    dst[x] = linear_floats_to_srgb(*s);
     return true;
 }
 

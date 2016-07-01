@@ -3,10 +3,11 @@
 #include "sse.h"
 #include <immintrin.h>
 #include <stdint.h>
+#include <string.h>
 
 extern const float    srgb_to_linear_float[256];
 extern const uint16_t srgb_to_linear_u15  [256];
-extern const uint8_t  u12_linear_to_srgb [4097];
+extern const uint8_t  linear_u12_to_srgb [4097];
 
 static inline __m128 srgb_to_linear_floats(uint32_t srgb) {
     __m128 a = _mm_mul_ps(better_cvtsi32_ss(srgb>>24), _mm_set1_ps(1/255.0f));
@@ -17,7 +18,7 @@ static inline __m128 srgb_to_linear_floats(uint32_t srgb) {
                        a[0]);
 }
 
-static inline uint32_t linear_to_srgb(__m128 linear) {
+static inline uint32_t linear_floats_to_srgb(__m128 linear) {
     __m128 rsqrt = _mm_rsqrt_ps(linear),
             sqrt = _mm_rcp_ps(rsqrt),
             ftrt = _mm_rsqrt_ps(rsqrt);
@@ -37,4 +38,30 @@ static inline uint32_t linear_to_srgb(__m128 linear) {
     return static_cast<uint32_t>(
         _mm_cvtsi128_si32(_mm_shuffle_epi8(_mm_cvtps_epi32(srgb),
                                            _mm_setr_epi8(0,4,8,12,0,0,0,0,0,0,0,0,0,0,0,0))));
+}
+
+static inline __m128i srgb_to_linear_u15s(uint64_t srgb) {
+    return _mm_setr_epi16(static_cast<short>( srgb_to_linear_u15[(srgb    ) & 0xff] ),
+                          static_cast<short>( srgb_to_linear_u15[(srgb>> 8) & 0xff] ),
+                          static_cast<short>( srgb_to_linear_u15[(srgb>>16) & 0xff] ),
+                          static_cast<short>( (srgb>>24) * 0x8000 / 0xff            ),
+                          static_cast<short>( srgb_to_linear_u15[(srgb>>32) & 0xff] ),
+                          static_cast<short>( srgb_to_linear_u15[(srgb>>40) & 0xff] ),
+                          static_cast<short>( srgb_to_linear_u15[(srgb>>48) & 0xff] ),
+                          static_cast<short>( (srgb>>56) * 0x8000 / 0xff            ));
+}
+
+static inline uint64_t linear_u15s_to_srgb(__m128i u15) {
+    __m128i u12 = _mm_srli_epi16(u15, 3);
+    uint16_t l[8];
+    memcpy(l, &u12, 16);
+
+    return (static_cast<uint64_t>(linear_u12_to_srgb[l[0]]) <<  0)
+         | (static_cast<uint64_t>(linear_u12_to_srgb[l[1]]) <<  8)
+         | (static_cast<uint64_t>(linear_u12_to_srgb[l[2]]) << 16)
+         | (static_cast<uint64_t>(l[3] * 0xff / 0x1000    ) << 24)
+         | (static_cast<uint64_t>(linear_u12_to_srgb[l[4]]) << 32)
+         | (static_cast<uint64_t>(linear_u12_to_srgb[l[5]]) << 40)
+         | (static_cast<uint64_t>(linear_u12_to_srgb[l[6]]) << 48)
+         | (static_cast<uint64_t>(l[7] * 0xff / 0x1000    ) << 56);
 }
