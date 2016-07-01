@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 extern const float    srgb_to_linear_float[256];
-extern const uint16_t srgb_to_linear_u16  [256];
+extern const uint16_t srgb_to_linear_u15  [256];
 
 static inline __m128 srgb_to_linear_floats(uint32_t srgb) {
     __m128 a = _mm_mul_ps(better_cvtsi32_ss(srgb>>24), _mm_set1_ps(1/255.0f));
