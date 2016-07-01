@@ -21,8 +21,11 @@ struct pipeline {
     void add_stage(Stage, const void* ctx);
     void ready();
 
-    void call(void* dp, size_t n) const;
+    void call(void* dp, size_t n, bool use_float_stages) const;
 
-    struct stage;
-    std::unique_ptr<std::vector<stage>> stages;
+    struct stage_f;
+    std::unique_ptr<std::vector<stage_f>> stages_f;
+
+    struct stage_q15;
+    std::unique_ptr<std::vector<stage_q15>> stages_q15;
 };
