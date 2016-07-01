@@ -64,7 +64,7 @@ void fused(uint32_t* dst, const uint32_t* src, const uint8_t* cov, size_t n) {
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-#if 0
+#if 1
     #define ABI __attribute__((vectorcall))
 #elif 0
     #define ABI __attribute__((sysv_abi))
@@ -72,7 +72,7 @@ void fused(uint32_t* dst, const uint32_t* src, const uint8_t* cov, size_t n) {
     #define ABI
 #endif
 
-using narrow_xmm = void(*)(const pipeline::stage*, size_t, void*, __m128, __m128);
+using narrow_xmm = ABI void(*)(const pipeline::stage*, size_t, void*, __m128, __m128);
 
 #define EXPORT_STAGE(name)                                                                  \
   static ABI void name(const pipeline::stage* st, size_t x, void* dp, __m128 d, __m128 s) { \
