@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>
 #include <vector>
 
 void fused(uint32_t* dst, const uint32_t* src, const uint8_t* cov, size_t n);

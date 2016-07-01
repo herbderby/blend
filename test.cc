@@ -34,26 +34,5 @@ int main(int argc, char** argv) {
     fused        (dst, src, cov, 1024);
     with_pipeline(dst, src, cov, 1024);
 
-    auto test_mul_q15 = [](int16_t x, int16_t y, int16_t xy) {
-        int16_t actual = static_cast<int16_t>(_mm_extract_epi16(mul_q15(_mm_set1_epi16(x),
-                                                                        _mm_set1_epi16(y)), 0));
-        printf("%d %d\n", xy, actual);
-        assert (xy == actual);
-    };
-
-    for (int i = 0; i <= 0x8000; i++) {
-        auto x = static_cast<int16_t>(-i);
-
-        test_mul_q15(0, x, 0);
-        test_mul_q15(x, 0, 0);
-
-        test_mul_q15(-0x8000, x, x);
-        test_mul_q15(x, -0x8000, x);
-    }
-
-    test_mul_q15(-0x8000, -0x8000, -0x8000);
-    test_mul_q15(-0x4000, -0x4000, -0x2000);
-
-
     return 0;
 }
