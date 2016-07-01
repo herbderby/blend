@@ -2,6 +2,7 @@
 #include "pipeline.h"
 #include "srgb.h"
 #include "sse.h"
+#include <assert.h>
 #include <immintrin.h>
 
 using wide_ymm = ABI void(*)(const pipeline::stage*, size_t, void*,
@@ -91,4 +92,18 @@ void pipeline::add_avx2_stage(Stage st, const void* ctx) {
         case store_s_srgb:  w = ::store_s_srgb; break;
     }
     avx2_stages.push_back({ reinterpret_cast<void(*)(void)>(w), ctx });
+}
+
+size_t pipeline::call_avx2_stages(void* dp, size_t n) const {
+    assert (avx2_stages.size() > 0);
+
+    __m128 u = _mm_undefined_ps();
+
+    size_t mask = 4-1;
+    for (size_t x = 0; x < (n & ~mask); x += 4) {
+        auto start = reinterpret_cast<wide_ymm>(avx2_stages.back().next);
+        start(avx2_stages.data(), x, dp, u,u,u,u, u,u,u,u);
+    }
+
+    return n & mask;
 }

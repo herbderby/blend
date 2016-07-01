@@ -184,10 +184,11 @@ void pipeline::call(void* dp, size_t n) const {
     assert (narrow_stages.size() > 0);
     assert (  wide_stages.size() > 0);
 
+    n = this->call_avx2_stages(dp, n);
+
     __m128 u = _mm_undefined_ps();
 
-    size_t mask = (4-1);
-
+    size_t mask = 4-1;
     for (size_t x = 0; x < (n & ~mask); x += 4) {
         auto start = reinterpret_cast<wide_xmm>(wide_stages.back().next);
         start(wide_stages.data(), x, dp, u,u,u,u, u,u,u,u);

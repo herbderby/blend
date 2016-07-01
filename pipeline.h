@@ -25,6 +25,8 @@ struct pipeline {
     };
 
 private:
+    size_t call_avx2_stages(void* dp, size_t n) const;
+
     void add_avx2_stage(Stage, const void* ctx);
 
     std::vector<stage> narrow_stages,
