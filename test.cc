@@ -3,12 +3,12 @@
 #include <assert.h>
 #include <stdlib.h>
 
-static void with_pipeline(uint32_t* dp, const uint32_t* sp, const uint8_t* cp, size_t n) {
+static void with_pipeline(uint32_t* dp, const uint32_t* sp, const uint8_t* /*cp*/, size_t n) {
     pipeline p;
     p.add_stage(pipeline:: load_d_srgb, nullptr);
     p.add_stage(pipeline:: load_s_srgb,    sp  );
     p.add_stage(pipeline::     srcover, nullptr);
-    p.add_stage(pipeline::     lerp_u8,    cp  );
+//    p.add_stage(pipeline::     lerp_u8,    cp  );
     p.add_stage(pipeline::store_s_srgb, nullptr);
     p.ready();
 

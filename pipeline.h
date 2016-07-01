@@ -24,5 +24,7 @@ struct pipeline {
         void (*next)(void);
         const void* ctx;
     };
-    std::vector<stage> stages;
+
+    std::vector<stage> narrow_stages,
+                         wide_stages;
 };
