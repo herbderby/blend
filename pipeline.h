@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include <vector>
+#include <memory>
 
 void fused(uint32_t* dst, const uint32_t* src, const uint8_t* cov, size_t n);
 
@@ -23,9 +23,6 @@ struct pipeline {
 
     void call(void* dp, size_t n, bool use_float_stages) const;
 
-    struct stage_f;
-    std::unique_ptr<std::vector<stage_f>> stages_f;
-
-    struct stage_q15;
-    std::unique_ptr<std::vector<stage_q15>> stages_q15;
+    struct Impl;
+    std::unique_ptr<Impl> impl;
 };

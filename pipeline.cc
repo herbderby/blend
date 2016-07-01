@@ -4,8 +4,10 @@
 #include <algorithm>
 #include <assert.h>
 #include <immintrin.h>
+#include <vector>
 
-static bool shortcircuit_srcover_both_srgb(const void* ctx, size_t x, void* dp, __m128*, __m128*) {
+static bool shortcircuit_srcover_both_srgb(const void* ctx, size_t x, void* dp,
+                                           __m128*, __m128*) {
     auto src = static_cast<const uint32_t*>(ctx);
     auto dst = static_cast<      uint32_t*>( dp);
     switch (src[x] >> 24) {
@@ -14,7 +16,8 @@ static bool shortcircuit_srcover_both_srgb(const void* ctx, size_t x, void* dp, 
     }
     return false;
 }
-static bool shortcircuit_srcover_both_srgb(const void* ctx, size_t x, void* dp, __m128i*, __m128i*) {
+static bool shortcircuit_srcover_both_srgb(const void* ctx, size_t x, void* dp,
+                                           __m128i*, __m128i*) {
     auto src = static_cast<const uint32_t*>(ctx);
     auto dst = static_cast<      uint32_t*>( dp);
     switch (src[x] >> 24) {
@@ -114,30 +117,24 @@ void fused(uint32_t* dst, const uint32_t* src, const uint8_t* cov, size_t n) {
     #define ABI
 #endif
 
-typedef
-ABI void stage_f_fn  (const pipeline::stage_f*,   size_t x, void* dp, __m128  d, __m128  s);
-typedef
-ABI void stage_q15_fn(const pipeline::stage_q15*, size_t x, void* dp, __m128i d, __m128i s);
-
-struct pipeline::stage_f {
-    stage_f_fn* next;
+template <typename V>
+struct stage {
+    ABI void (*next)(const stage*, size_t, void*, V, V);
     const void* ctx;
-};
-struct pipeline::stage_q15 {
-    stage_q15_fn* next;
-    const void*   ctx;
+
+    using fn = decltype(next);
 };
 
-#define EXPORT_STAGE(name)                                                                        \
-  static ABI void name(const pipeline::stage_f* st, size_t x, void* dp, __m128 d, __m128 s) {     \
-      if (!name(st->ctx, x,dp,&d,&s)) {                                                           \
-          st->next(st+1, x,dp,d,s);                                                               \
-      }                                                                                           \
-  }                                                                                               \
-  static ABI void name(const pipeline::stage_q15* st, size_t x, void* dp, __m128i d, __m128i s) { \
-      if (!name(st->ctx, x,dp,&d,&s)) {                                                           \
-          st->next(st+1, x,dp,d,s);                                                               \
-      }                                                                                           \
+#define EXPORT_STAGE(name)                                                                   \
+  static ABI void name(const stage<__m128 >* st, size_t x, void* dp, __m128  d, __m128  s) { \
+      if (!name(st->ctx, x,dp,&d,&s)) {                                                      \
+          st->next(st+1, x,dp,d,s);                                                          \
+      }                                                                                      \
+  }                                                                                          \
+  static ABI void name(const stage<__m128i>* st, size_t x, void* dp, __m128i d, __m128i s) { \
+      if (!name(st->ctx, x,dp,&d,&s)) {                                                      \
+          st->next(st+1, x,dp,d,s);                                                          \
+      }                                                                                      \
   }
 
     EXPORT_STAGE(shortcircuit_srcover_both_srgb)
@@ -149,16 +146,20 @@ struct pipeline::stage_q15 {
 
 #undef EXPORT_STAGE
 
-pipeline::pipeline() : stages_f  (new std::vector<stage_f  >)
-                     , stages_q15(new std::vector<stage_q15>) {
-    stages_f  ->reserve(8);
-    stages_q15->reserve(8);
+struct pipeline::Impl {
+    std::vector<stage<__m128 >> stages_f;
+    std::vector<stage<__m128i>> stages_q15;
+};
+
+pipeline::pipeline() : impl(new Impl) {
+    impl->stages_f  .reserve(8);
+    impl->stages_q15.reserve(8);
 }
 pipeline::~pipeline() {}
 
-void pipeline::add_stage(Stage stage, const void* ctx) {
-    stage_f_fn* f = nullptr;
-    switch (stage) {
+void pipeline::add_stage(Stage st, const void* ctx) {
+    stage<__m128>::fn f = nullptr;
+    switch (st) {
         case Stage::shortcircuit_srcover_both_srgb: f =  shortcircuit_srcover_both_srgb; break;
         case Stage::load_d_srgb:                    f =  load_d_srgb;                    break;
         case Stage::load_s_srgb:                    f =  load_s_srgb;                    break;
@@ -166,10 +167,10 @@ void pipeline::add_stage(Stage stage, const void* ctx) {
         case Stage::lerp_u8:                        f =      lerp_u8;                    break;
         case Stage::store_s_srgb:                   f = store_s_srgb;                    break;
     }
-    stages_f->push_back({ f, ctx });
+    impl->stages_f.push_back({ f, ctx });
 
-    stage_q15_fn* q15 = nullptr;
-    switch (stage) {
+    stage<__m128i>::fn q15 = nullptr;
+    switch (st) {
         case Stage::shortcircuit_srcover_both_srgb: q15 =  shortcircuit_srcover_both_srgb; break;
         case Stage::load_d_srgb:                    q15 =  load_d_srgb;                    break;
         case Stage::load_s_srgb:                    q15 =  load_s_srgb;                    break;
@@ -177,7 +178,7 @@ void pipeline::add_stage(Stage stage, const void* ctx) {
         case Stage::lerp_u8:                        q15 =      lerp_u8;                    break;
         case Stage::store_s_srgb:                   q15 = store_s_srgb;                    break;
     }
-    stages_q15->push_back({ q15, ctx });
+    impl->stages_q15.push_back({ q15, ctx });
 }
 
 template <typename T>
@@ -191,28 +192,28 @@ static void ready_stages(std::vector<T>* stages) {
 }
 
 void pipeline::ready() {
-    ready_stages(stages_f  .get());
-    ready_stages(stages_q15.get());
+    ready_stages(&impl->stages_f  );
+    ready_stages(&impl->stages_q15);
 }
 
 void pipeline::call(void* dp, size_t n, bool use_float_stages) const {
     if (use_float_stages) {
-        assert (stages_f->size() > 0);
+        assert (impl->stages_f.size() > 0);
 
         __m128 d = _mm_undefined_ps(),
                s = _mm_undefined_ps();
         for (size_t x = 0; x < n; x++) {
-            auto start = stages_f->back().next;
-            start(stages_f->data(), x, dp, d,s);
+            auto start = impl->stages_f.back().next;
+            start(impl->stages_f.data(), x, dp, d,s);
         }
     } else {
-        assert (stages_q15->size() > 0);
+        assert (impl->stages_q15.size() > 0);
 
         __m128i d = _mm_undefined_si128(),
                 s = _mm_undefined_si128();
         for (size_t x = 0; x < n/2; x++) {  // TODO: handle odd n
-            auto start = stages_q15->back().next;
-            start(stages_q15->data(), x, dp, d,s);
+            auto start = impl->stages_q15.back().next;
+            start(impl->stages_q15.data(), x, dp, d,s);
         }
     }
 }
