@@ -1,7 +1,7 @@
 builddir = bin
 
-cc = clang++ -fcolor-diagnostics -Weverything -Wno-c++98-compat
-cflags = -std=c++11 -Os -msse4.1 -Werror
+cc = clang++ -fcolor-diagnostics -Weverything -Wno-c++98-compat -Wno-c++98-compat-pedantic
+cflags = -std=c++11 -Os -Werror
 
 rule cc
     command = $cc -c $in -MD -MF $out.d $cflags -o $out
@@ -15,6 +15,7 @@ rule run
     command = ./$in > $out
 
 build bin/pipeline.o: cc pipeline.cc
+    cflags = $cflags -msse4.1
 build bin/srgb.o:     cc srgb.cc
 build bin/test.o:     cc test.cc
 

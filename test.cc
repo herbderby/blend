@@ -5,11 +5,11 @@
 
 static void with_pipeline(uint32_t* dp, const uint32_t* sp, const uint8_t* cp, size_t n) {
     pipeline p;
-    p.add_stage( load_d_srgb, nullptr);
-    p.add_stage( load_s_srgb,    sp  );
-    p.add_stage(     srcover, nullptr);
-    p.add_stage(     lerp_u8,    cp  );
-    p.add_stage(store_s_srgb, nullptr);
+    p.add_stage(Stage:: load_d_srgb, nullptr);
+    p.add_stage(Stage:: load_s_srgb,    sp  );
+    p.add_stage(Stage::     srcover, nullptr);
+    p.add_stage(Stage::     lerp_u8,    cp  );
+    p.add_stage(Stage::store_s_srgb, nullptr);
     p.ready();
 
     p.call(dp, n);
