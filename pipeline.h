@@ -8,7 +8,6 @@ void fused(uint32_t* dst, const uint32_t* src, const uint8_t* cov, size_t n);
 
 struct pipeline {
     enum Stage {
-        shortcircuit_srcover_both_srgb,
         load_d_srgb,
         load_s_srgb,
         srcover,
