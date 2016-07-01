@@ -2,23 +2,19 @@
 #include <assert.h>
 #include <stdlib.h>
 
-static void pipeline(uint32_t* dp, const uint32_t* sp, const uint8_t* cp, size_t n) {
-#if 0
-    stage_fn* start = shortcircuit_srcover_both_srgb;
-    stage stages[] = {
-        {  load_d_srgb,  sp  },  // shortcircuit_srcover_both_srgb
-#else
-    stage_fn* start = load_d_srgb;
-    stage stages[] = {
-#endif
-        {  load_s_srgb, NULL },  // load_d_srgb
-        {      srcover,  sp  },  // load_s_srgb
-        {      lerp_u8, NULL },  // srcover
-        { store_s_srgb,  cp  },  // lerp_u8
-        {         NULL, NULL },  // store_s_srgb
-    };
+static void with_pipeline(uint32_t* dp, const uint32_t* sp, const uint8_t* cp, size_t n) {
+    static pipeline* p = nullptr;
+    if (!p) {
+        p = new pipeline;
+        p->add_stage( load_d_srgb, nullptr);
+        p->add_stage( load_s_srgb,    sp  );
+        p->add_stage(     srcover, nullptr);
+        p->add_stage(     lerp_u8,    cp  );
+        p->add_stage(store_s_srgb, nullptr);
+        p->ready();
+    }
 
-    run_pipeline(stages, start, dp, n);
+    p->call(dp, n);
 }
 
 static uint32_t dst[1024], src[1024];
@@ -30,15 +26,15 @@ int main(int argc, char** argv) {
     if (choice) {
         for (int j = 0; j < 100000; j++) {
             switch (choice) {
-                case 1: fused   (dst, src, cov, 1024); break;
-                case 2: pipeline(dst, src, cov, 1024); break;
+                case 1: fused        (dst, src, cov, 1024); break;
+                case 2: with_pipeline(dst, src, cov, 1024); break;
             }
         }
         return 0;
     }
 
-    fused   (dst, src, cov, 1024);
-    pipeline(dst, src, cov, 1024);
+    fused        (dst, src, cov, 1024);
+    with_pipeline(dst, src, cov, 1024);
 
     return 0;
 }

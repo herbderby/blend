@@ -1,6 +1,8 @@
 #include "pipeline.h"
 #include "srgb.h"
 #include "sse.h"
+#include <algorithm>
+#include <assert.h>
 
 static bool shortcircuit_srcover_both_srgb(const void* ctx, size_t x, void* dp, __m128*, __m128*) {
     auto src = static_cast<const uint32_t*>(ctx);
@@ -61,14 +63,6 @@ static bool store_s_srgb(const void*, size_t x, void* dp, __m128*, __m128* s) {
 
 #undef EXPORT_STAGE
 
-void run_pipeline(const stage* stages, stage_fn* start, void* dp, size_t n) {
-    __m128 d = _mm_undefined_ps(),
-           s = _mm_undefined_ps();
-    for (size_t x = 0; x < n; x++) {
-        start(stages, x, dp, d,s);
-    }
-}
-
 void fused(uint32_t* dst, const uint32_t* src, const uint8_t* cov, size_t n) {
     __m128 d = _mm_undefined_ps(),
            s = _mm_undefined_ps();
@@ -79,5 +73,30 @@ void fused(uint32_t* dst, const uint32_t* src, const uint8_t* cov, size_t n) {
         if (                       srcover(NULL, x,dst,&d,&s)) continue;
         if (                       lerp_u8( cov, x,dst,&d,&s)) continue;
         if (                  store_s_srgb(NULL, x,dst,&d,&s)) continue;
+    }
+}
+
+void pipeline::add_stage(stage_fn* fn, const void* ctx) {
+    stages.push_back({ fn, ctx });
+}
+
+void pipeline::ready() {
+    assert (stages.size() > 0);
+
+    stage_fn* start = stages[0].next;
+    for (size_t i = 0; i < stages.size(); i++) {
+        stages[i].next = stages[i+1].next;
+    }
+    stages[stages.size() - 1].next = start;  // Not really, just a convenient place to stash it.
+}
+
+void pipeline::call(void* dp, size_t n) const {
+    assert (stages.size() > 0);
+
+    __m128 d = _mm_undefined_ps(),
+           s = _mm_undefined_ps();
+    for (size_t x = 0; x < n; x++) {
+        auto start = stages.back().next;  // See pipeline::ready().
+        start(stages.data(), x, dp, d,s);
     }
 }
