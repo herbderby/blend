@@ -35,8 +35,9 @@ static bool srcover(const void*, size_t, void*, __m128* d, __m128* s) {
 
 static bool lerp_u8(const void* ctx, size_t x, void*, __m128* d, __m128* s) {
     auto cov = static_cast<const uint8_t*>(ctx);
-    __m128 c = _mm_mul_ps(better_cvtsi32_ss(cov[x]), _mm_set1_ps(1/255.0f)),
-           C = _mm_sub_ps(_mm_set1_ps(1), c);
+    __m128 c = _mm_mul_ps(better_cvtsi32_ss(cov[x]), _mm_set1_ps(1/255.0f));
+    c = _mm_shuffle_ps(c,c,0x00);
+    __m128 C = _mm_sub_ps(_mm_set1_ps(1), c);
     *s = _mm_add_ps(_mm_mul_ps(*s, c), _mm_mul_ps(*d, C));
     return false;
 }
