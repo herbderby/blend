@@ -26,23 +26,23 @@ static bool shortcircuit_srcover_both_srgb(const void* ctx, size_t x, void* dp, 
 
 static bool load_d_srgb(const void*, size_t x, void* dp, __m128* d, __m128*) {
     auto dst = static_cast<uint32_t*>(dp);
-    *d = srgb_to_linear_floats(dst[x]);
+    *d = srgb_to_floats(dst[x]);
     return false;
 }
 static bool load_d_srgb(const void*, size_t x, void* dp, __m128i* d, __m128i*) {
     auto dst = static_cast<uint64_t*>(dp);
-    *d = srgb_to_linear_q15s(dst[x]);
+    *d = srgb_to_q15s(dst[x]);
     return false;
 }
 
 static bool load_s_srgb(const void* ctx, size_t x, void*, __m128*, __m128* s) {
     auto src = static_cast<const uint32_t*>(ctx);
-    *s = srgb_to_linear_floats(src[x]);
+    *s = srgb_to_floats(src[x]);
     return false;
 }
 static bool load_s_srgb(const void* ctx, size_t x, void*, __m128i*, __m128i* s) {
     auto src = static_cast<const uint64_t*>(ctx);
-    *s = srgb_to_linear_q15s(src[x]);
+    *s = srgb_to_q15s(src[x]);
     return false;
 }
 
@@ -68,8 +68,8 @@ static bool lerp_u8(const void* ctx, size_t x, void*, __m128* d, __m128* s) {
 static bool lerp_u8(const void* ctx, size_t x, void*, __m128i* d, __m128i* s) {
     auto cov = static_cast<const uint16_t*>(ctx);
 
-    int16_t c0 = byte_to_linear_q15(cov[x] & 0xff),
-            c1 = byte_to_linear_q15(cov[x] >>   8);
+    int16_t c0 = byte_to_q15(cov[x] & 0xff),
+            c1 = byte_to_q15(cov[x] >>   8);
 
     __m128i c = _mm_shuffle_epi8(_mm_cvtsi32_si128((c1 << 16) | c0),
                                  _mm_setr_epi8(0,1,0,1,0,1,0,1, 2,3,2,3,2,3,2,3));
@@ -81,12 +81,12 @@ static bool lerp_u8(const void* ctx, size_t x, void*, __m128i* d, __m128i* s) {
 
 static bool store_s_srgb(const void*, size_t x, void* dp, __m128*, __m128* s) {
     auto dst = static_cast<uint32_t*>(dp);
-    dst[x] = linear_floats_to_srgb(*s);
+    dst[x] = floats_to_srgb(*s);
     return true;
 }
 static bool store_s_srgb(const void*, size_t x, void* dp, __m128i*, __m128i* s) {
     auto dst = static_cast<uint64_t*>(dp);
-    dst[x] = linear_q15s_to_srgb(*s);
+    dst[x] = q15s_to_srgb(*s);
     return true;
 }
 
