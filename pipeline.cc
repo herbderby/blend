@@ -64,7 +64,7 @@ void fused(uint32_t* dst, const uint32_t* src, const uint8_t* cov, size_t n) {
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-#if 1
+#if 0
     #define ABI __attribute__((vectorcall))
 #elif 0
     #define ABI __attribute__((sysv_abi))
