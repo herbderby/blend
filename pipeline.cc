@@ -16,13 +16,13 @@ static bool shortcircuit_srcover_both_srgb(const void* ctx, size_t x, void* dp, 
 
 static bool load_d_srgb(const void*, size_t x, void* dp, __m128* d, __m128*) {
     auto dst = static_cast<uint32_t*>(dp);
-    *d = srgb_to_linear(dst[x]);
+    *d = srgb_to_linear_floats(dst[x]);
     return false;
 }
 
 static bool load_s_srgb(const void* ctx, size_t x, void*, __m128*, __m128* s) {
     auto src = static_cast<const uint32_t*>(ctx);
-    *s = srgb_to_linear(src[x]);
+    *s = srgb_to_linear_floats(src[x]);
     return false;
 }
 
