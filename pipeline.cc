@@ -199,11 +199,11 @@ static bool store_s_srgb(const void*, size_t x, void* dp,
       }                                                               \
   }
 
-    EXPORT_STAGE(load_d_srgb);
-    EXPORT_STAGE(load_s_srgb);
-    EXPORT_STAGE(srcover);
-    EXPORT_STAGE(lerp_u8);
-    EXPORT_STAGE(store_s_srgb);
+    EXPORT_STAGE(load_d_srgb)
+    EXPORT_STAGE(load_s_srgb)
+    EXPORT_STAGE(srcover)
+    EXPORT_STAGE(lerp_u8)
+    EXPORT_STAGE(store_s_srgb)
 
 #undef EXPORT_STAGE
 
