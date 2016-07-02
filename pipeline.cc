@@ -50,9 +50,9 @@ static inline __m128 floats_to_srgb_floats(__m128 l) {
 
     __m128 lo = _mm_mul_ps(_mm_set1_ps(12.92f * 255.0f), l);
 
-    __m128 hi = _mm_add_ps(_mm_set1_ps(-0.101115084998961f * 255.0f),
+    __m128 hi = _mm_add_ps(_mm_mul_ps(_mm_set1_ps(+0.422602055039580f * 255.0f), ftrt),
                 _mm_add_ps(_mm_mul_ps(_mm_set1_ps(+0.678513029959381f * 255.0f), sqrt),
-                           _mm_mul_ps(_mm_set1_ps(+0.422602055039580f * 255.0f), ftrt)));
+                                      _mm_set1_ps(-0.101115084998961f * 255.0f)));
 
     return _mm_blendv_ps(hi, lo, _mm_cmplt_ps(l, _mm_set1_ps(0.00349f)));
 }
