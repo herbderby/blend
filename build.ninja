@@ -18,7 +18,7 @@ rule run
 build bin/pipeline.o:      cc pipeline.cc
     cflags = $cflags -msse4.1
 build bin/pipeline_avx2.o: cc pipeline_avx2.cc
-    cflags = $cflags -mavx2 -mfma -ffp-contract=fast
+    cflags = $cflags -mavx2
 
 build bin/srgb.o: cc srgb.cc
 build bin/test.o: cc test.cc
