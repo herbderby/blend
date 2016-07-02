@@ -1,6 +1,4 @@
 #include "pipeline.h"
-#include "sse.h"
-#include <assert.h>
 #include <stdlib.h>
 
 static void with_pipeline(uint32_t* dp, const uint32_t* sp, const uint8_t* cp, size_t n) {

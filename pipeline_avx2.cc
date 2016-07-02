@@ -1,7 +1,6 @@
 #include "abi.h"
 #include "pipeline.h"
 #include "srgb.h"
-#include "sse.h"
 #include <assert.h>
 #include <immintrin.h>
 
