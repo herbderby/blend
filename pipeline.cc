@@ -116,21 +116,11 @@ static bool store_s_srgb(const void*, size_t x, void* dp, __m128*, __m128* s) {
     return true;
 }
 
-#define EXPORT_STAGE(name)                                                                  \
-  static ABI void name(const pipeline::stage* st, size_t x, void* dp, __m128 d, __m128 s) { \
-      if (!name(st->ctx, x,dp,&d,&s)) {                                                     \
-          auto next = reinterpret_cast<narrow_xmm>(st->next);                               \
-          next(st+1, x,dp,d,s);                                                             \
-      }                                                                                     \
-  }
-
-    EXPORT_STAGE(load_d_srgb)
-    EXPORT_STAGE(load_s_srgb)
-    EXPORT_STAGE(srcover)
-    EXPORT_STAGE(lerp_u8)
-    EXPORT_STAGE(store_s_srgb)
-
-#undef EXPORT_STAGE
+EXPORT_NARROW_XMM(load_d_srgb)
+EXPORT_NARROW_XMM(load_s_srgb)
+EXPORT_NARROW_XMM(srcover)
+EXPORT_NARROW_XMM(lerp_u8)
+EXPORT_NARROW_XMM(store_s_srgb)
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
@@ -189,23 +179,11 @@ static bool store_s_srgb(const void*, size_t x, void* dp,
     return true;
 }
 
-#define EXPORT_STAGE(name)                                            \
-  static ABI void name(const pipeline::stage* st, size_t x, void* dp, \
-                       __m128 dr, __m128 dg, __m128 db, __m128 da,    \
-                       __m128 sr, __m128 sg, __m128 sb, __m128 sa) {  \
-      if (!name(st->ctx, x,dp, &dr,&dg,&db,&da, &sr,&sg,&sb,&sa)) {   \
-          auto next = reinterpret_cast<wide_xmm>(st->next);           \
-          next(st+1, x,dp, dr,dg,db,da, sr,sg,sb,sa);                 \
-      }                                                               \
-  }
-
-    EXPORT_STAGE(load_d_srgb)
-    EXPORT_STAGE(load_s_srgb)
-    EXPORT_STAGE(srcover)
-    EXPORT_STAGE(lerp_u8)
-    EXPORT_STAGE(store_s_srgb)
-
-#undef EXPORT_STAGE
+EXPORT_WIDE_XMM(load_d_srgb)
+EXPORT_WIDE_XMM(load_s_srgb)
+EXPORT_WIDE_XMM(srcover)
+EXPORT_WIDE_XMM(lerp_u8)
+EXPORT_WIDE_XMM(store_s_srgb)
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 

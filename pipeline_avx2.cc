@@ -150,23 +150,11 @@ static bool store_s_srgb(const void*, size_t x, void* dp,
     return true;
 }
 
-#define EXPORT_STAGE(name)                                            \
-  static ABI void name(const pipeline::stage* st, size_t x, void* dp, \
-                       __m256 dr, __m256 dg, __m256 db, __m256 da,    \
-                       __m256 sr, __m256 sg, __m256 sb, __m256 sa) {  \
-      if (!name(st->ctx, x,dp, &dr,&dg,&db,&da, &sr,&sg,&sb,&sa)) {   \
-          auto next = reinterpret_cast<wide_ymm>(st->next);           \
-          next(st+1, x,dp, dr,dg,db,da, sr,sg,sb,sa);                 \
-      }                                                               \
-  }
-
-    EXPORT_STAGE(load_d_srgb)
-    EXPORT_STAGE(load_s_srgb)
-    EXPORT_STAGE(srcover)
-    EXPORT_STAGE(lerp_u8)
-    EXPORT_STAGE(store_s_srgb)
-
-#undef EXPORT_STAGE
+EXPORT_WIDE_YMM(load_d_srgb)
+EXPORT_WIDE_YMM(load_s_srgb)
+EXPORT_WIDE_YMM(srcover)
+EXPORT_WIDE_YMM(lerp_u8)
+EXPORT_WIDE_YMM(store_s_srgb)
 
 void pipeline::add_avx2_stage(Stage st, const void* ctx) {
     if (avx2_stages.size() == 0) {
