@@ -20,35 +20,9 @@
     #define ABI
 #endif
 
-using f8 = float __attribute__((__vector_size__(32)));
 using f4 = float __attribute__((__vector_size__(16)));
 using f1 = float;
 
 struct stage;
-using f8_fn = ABI void(*)(stage*, size_t, f8, f8, f8, f8);
 using f4_fn = ABI void(*)(stage*, size_t, f4, f4, f4, f4);
 using f1_fn = ABI void(*)(stage*, size_t, f1, f1, f1, f1);
-
-#define EXPORT_F8(name)                                               \
-  static ABI void name(stage* st, size_t x, f8 r, f8 g, f8 b, f8 a) { \
-      if (!name(st->ctx, x, &r,&g,&b,&a)) {                           \
-          auto next = reinterpret_cast<f8_fn>(st->next);              \
-          next(st+1, x, r,g,b,a);                                     \
-      }                                                               \
-  }
-
-#define EXPORT_F4(name)                                               \
-  static ABI void name(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) { \
-      if (!name(st->ctx, x, &r,&g,&b,&a)) {                           \
-          auto next = reinterpret_cast<f4_fn>(st->next);              \
-          next(st+1, x, r,g,b,a);                                     \
-      }                                                               \
-  }
-
-#define EXPORT_F1(name)                                               \
-  static ABI void name(stage* st, size_t x, f1 r, f1 g, f1 b, f1 a) { \
-      if (!name(st->ctx, x, &r,&g,&b,&a)) {                           \
-          auto next = reinterpret_cast<f1_fn>(st->next);              \
-          next(st+1, x, r,g,b,a);                                     \
-      }                                                               \
-  }

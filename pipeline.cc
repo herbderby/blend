@@ -80,79 +80,85 @@ static inline void floats_to_srgb(uint32_t srgb[1], f1 r, f1 g, f1 b, f1 a) {
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-static bool load_srgb(void* ctx, size_t x, f4* r, f4* g, f4* b, f4* a) {
-    auto src = static_cast<const uint32_t*>(ctx);
-    srgb_to_floats(src+x, r,g,b,a);
-    return false;
+using f4_fn = ABI void(*)(stage*, size_t, f4, f4, f4, f4);
+
+static void next(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
+    auto next = reinterpret_cast<f4_fn>(st->next);
+    next(st+1, x, r,g,b,a);
 }
 
-static bool scale_u8(void* ctx, size_t x, f4* r, f4* g, f4* b, f4* a) {
-    auto cov  = static_cast<const uint8_t*>(ctx);
+static void load_srgb(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
+    auto src = static_cast<const uint32_t*>(st->ctx);
+    srgb_to_floats(src+x, &r,&g,&b,&a);
+
+    next(st,x,r,g,b,a);
+}
+
+static void scale_u8(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
+    auto cov  = static_cast<const uint8_t*>(st->ctx);
     auto cov4 = reinterpret_cast<const int*>(cov+x);
     f4 c = _mm_mul_ps(_mm_set1_ps(1/255.0f),
                       _mm_cvtepi32_ps(_mm_cvtepu8_epi32(_mm_cvtsi32_si128(*cov4))));
-    *r *= c;
-    *g *= c;
-    *b *= c;
-    *a *= c;
-    return false;
+    r *= c;
+    g *= c;
+    b *= c;
+    a *= c;
+
+    next(st,x,r,g,b,a);
 }
 
-static bool srcover_srgb(void* ctx, size_t x, f4* r, f4* g, f4* b, f4* a) {
-    auto dst = static_cast<uint32_t*>(ctx);
+static void srcover_srgb(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
+    auto dst = static_cast<uint32_t*>(st->ctx);
     f4 dr,dg,db,da;
     srgb_to_floats(dst+x, &dr,&dg,&db,&da);
 
-    f4 A = _mm_sub_ps(_mm_set1_ps(1), *a);
-    *r += dr * A;
-    *g += dg * A;
-    *b += db * A;
-    *a += da * A;
+    f4 A = _mm_sub_ps(_mm_set1_ps(1), a);
+    r += dr * A;
+    g += dg * A;
+    b += db * A;
+    a += da * A;
 
-    floats_to_srgb(dst+x, *r, *g, *b, *a);
-    return true;
+    floats_to_srgb(dst+x, r, g, b, a);
 }
-
-EXPORT_F4(load_srgb)
-EXPORT_F4(scale_u8)
-EXPORT_F4(srcover_srgb)
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-static bool load_srgb(void* ctx, size_t x, f1* r, f1* g, f1* b, f1* a) {
-    auto src = static_cast<const uint32_t*>(ctx);
-    srgb_to_floats(src+x, r,g,b,a);
-    return false;
+static void next(stage* st, size_t x, f1 r, f1 g, f1 b, f1 a) {
+    auto next = reinterpret_cast<f1_fn>(st->next);
+    next(st+1, x, r,g,b,a);
 }
 
-static bool scale_u8(void* ctx, size_t x, f1* r, f1* g, f1* b, f1* a) {
-    auto cov  = static_cast<const uint8_t*>(ctx);
+static void load_srgb(stage* st, size_t x, f1 r, f1 g, f1 b, f1 a) {
+    auto src = static_cast<const uint32_t*>(st->ctx);
+    srgb_to_floats(src+x, &r,&g,&b,&a);
+
+    next(st,x,r,g,b,a);
+}
+
+static void scale_u8(stage* st, size_t x, f1 r, f1 g, f1 b, f1 a) {
+    auto cov  = static_cast<const uint8_t*>(st->ctx);
     f1 c = cov[x] * (1/255.0f);
-    *r *= c;
-    *g *= c;
-    *b *= c;
-    *a *= c;
-    return false;
+    r *= c;
+    g *= c;
+    b *= c;
+    a *= c;
+
+    next(st,x,r,g,b,a);
 }
 
-static bool srcover_srgb(void* ctx, size_t x, f1* r, f1* g, f1* b, f1* a) {
-    auto dst = static_cast<uint32_t*>(ctx);
+static void srcover_srgb(stage* st, size_t x, f1 r, f1 g, f1 b, f1 a) {
+    auto dst = static_cast<uint32_t*>(st->ctx);
     f1 dr,dg,db,da;
     srgb_to_floats(dst+x, &dr,&dg,&db,&da);
 
-    f1 A = 1.0f - *a;
-    *r += dr * A;
-    *g += dg * A;
-    *b += db * A;
-    *a += da * A;
+    f1 A = 1.0f - a;
+    r += dr * A;
+    g += dg * A;
+    b += db * A;
+    a += da * A;
 
-    floats_to_srgb(dst+x, *r, *g, *b, *a);
-    return true;
+    floats_to_srgb(dst+x, r, g, b, a);
 }
-
-EXPORT_F1(load_srgb)
-EXPORT_F1(scale_u8)
-EXPORT_F1(srcover_srgb)
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
