@@ -18,7 +18,7 @@ struct pipeline {
     void call(size_t n);
 
 private:
-    std::vector<stage> f1_stages,
+    std::vector<stage> f8_stages,
                        f4_stages,
-                       f8_stages;
+                       f1_stages;
 };

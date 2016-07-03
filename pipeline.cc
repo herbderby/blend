@@ -4,13 +4,6 @@
 #include <assert.h>
 #include <immintrin.h>
 
-static inline void srgb_to_floats(const uint32_t srgb[1], f1* r, f1* g, f1* b, f1* a) {
-    *r = srgb_to_float[(*srgb >>  0) & 0xff];
-    *g = srgb_to_float[(*srgb >>  8) & 0xff];
-    *b = srgb_to_float[(*srgb >> 16) & 0xff];
-    *a = (*srgb >> 24) * (1/255.0f);  // TODO: check for bad cvtsi2ss
-}
-
 static inline void srgb_to_floats(const uint32_t srgb[4], f4* r, f4* g, f4* b, f4* a) {
     *r = { srgb_to_float[(srgb[0] >>  0) & 0xff],
            srgb_to_float[(srgb[1] >>  0) & 0xff],
@@ -31,6 +24,15 @@ static inline void srgb_to_floats(const uint32_t srgb[4], f4* r, f4* g, f4* b, f
     *a = _mm_mul_ps(_mm_set1_ps(1/255.0f),
                     _mm_cvtepi32_ps(_mm_srli_epi32(_mm_loadu_si128(p), 24)));
 }
+
+static inline void srgb_to_floats(const uint32_t srgb[1], f1* r, f1* g, f1* b, f1* a) {
+    *r = srgb_to_float[(*srgb >>  0) & 0xff];
+    *g = srgb_to_float[(*srgb >>  8) & 0xff];
+    *b = srgb_to_float[(*srgb >> 16) & 0xff];
+    *a = (*srgb >> 24) * (1/255.0f);  // TODO: check for bad cvtsi2ss
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
 static inline f4 clamp_0_255(f4 x) {
     // max/min order and argument order both matter.  This clamps NaN to 0.
@@ -53,16 +55,6 @@ static inline f4 to_srgb(f4 l) {
     return _mm_blendv_ps(hi, lo, _mm_cmplt_ps(l, _mm_set1_ps(0.00349f)));
 }
 
-static inline void floats_to_srgb(uint32_t srgb[1], f1 r, f1 g, f1 b, f1 a) {
-    f4 s = to_srgb(f4{r,g,b,0});
-    s = { s[0], s[1], s[2], a*255 };
-    s = clamp_0_255(s);
-
-    *srgb = static_cast<uint32_t>(
-        _mm_cvtsi128_si32(_mm_shuffle_epi8(_mm_cvtps_epi32(s),
-                                           _mm_setr_epi8(0,4,8,12, 0,0,0,0,0,0,0,0,0,0,0,0))));
-}
-
 static inline void floats_to_srgb(uint32_t srgb[4], f4 r, f4 g, f4 b, f4 a) {
     r = clamp_0_255(to_srgb(r));
     g = clamp_0_255(to_srgb(g));
@@ -76,42 +68,15 @@ static inline void floats_to_srgb(uint32_t srgb[4], f4 r, f4 g, f4 b, f4 a) {
     _mm_storeu_si128(reinterpret_cast<__m128i*>(srgb), rgba);
 }
 
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+static inline void floats_to_srgb(uint32_t srgb[1], f1 r, f1 g, f1 b, f1 a) {
+    f4 s = to_srgb(f4{r,g,b,0});
+    s = { s[0], s[1], s[2], a*255 };
+    s = clamp_0_255(s);
 
-static bool load_srgb(void* ctx, size_t x, f1* r, f1* g, f1* b, f1* a) {
-    auto src = static_cast<const uint32_t*>(ctx);
-    srgb_to_floats(src+x, r,g,b,a);
-    return false;
+    *srgb = static_cast<uint32_t>(
+        _mm_cvtsi128_si32(_mm_shuffle_epi8(_mm_cvtps_epi32(s),
+                                           _mm_setr_epi8(0,4,8,12, 0,0,0,0,0,0,0,0,0,0,0,0))));
 }
-
-static bool scale_u8(void* ctx, size_t x, f1* r, f1* g, f1* b, f1* a) {
-    auto cov  = static_cast<const uint8_t*>(ctx);
-    f1 c = cov[x] * (1/255.0f); // TODO: check for bad cvtsi2ss
-    *r *= c;
-    *g *= c;
-    *b *= c;
-    *a *= c;
-    return false;
-}
-
-static bool srcover_srgb(void* ctx, size_t x, f1* r, f1* g, f1* b, f1* a) {
-    auto dst = static_cast<uint32_t*>(ctx);
-    f1 dr,dg,db,da;
-    srgb_to_floats(dst+x, &dr,&dg,&db,&da);
-
-    f1 A = 1.0f - *a;
-    *r += dr * A;
-    *g += dg * A;
-    *b += db * A;
-    *a += da * A;
-
-    floats_to_srgb(dst+x, *r, *g, *b, *a);
-    return true;
-}
-
-EXPORT_F1(load_srgb)
-EXPORT_F1(scale_u8)
-EXPORT_F1(srcover_srgb)
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
@@ -154,20 +119,47 @@ EXPORT_F4(srcover_srgb)
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
+static bool load_srgb(void* ctx, size_t x, f1* r, f1* g, f1* b, f1* a) {
+    auto src = static_cast<const uint32_t*>(ctx);
+    srgb_to_floats(src+x, r,g,b,a);
+    return false;
+}
+
+static bool scale_u8(void* ctx, size_t x, f1* r, f1* g, f1* b, f1* a) {
+    auto cov  = static_cast<const uint8_t*>(ctx);
+    f1 c = cov[x] * (1/255.0f); // TODO: check for bad cvtsi2ss
+    *r *= c;
+    *g *= c;
+    *b *= c;
+    *a *= c;
+    return false;
+}
+
+static bool srcover_srgb(void* ctx, size_t x, f1* r, f1* g, f1* b, f1* a) {
+    auto dst = static_cast<uint32_t*>(ctx);
+    f1 dr,dg,db,da;
+    srgb_to_floats(dst+x, &dr,&dg,&db,&da);
+
+    f1 A = 1.0f - *a;
+    *r += dr * A;
+    *g += dg * A;
+    *b += db * A;
+    *a += da * A;
+
+    floats_to_srgb(dst+x, *r, *g, *b, *a);
+    return true;
+}
+
+EXPORT_F1(load_srgb)
+EXPORT_F1(scale_u8)
+EXPORT_F1(srcover_srgb)
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
 void pipeline::add_stage(Stage st, const void* ctx) {
     if (f1_stages.size() == 0) {
         f1_stages.reserve(8);
         f4_stages.reserve(8);
-    }
-
-    {
-        f1_fn f = nullptr;
-        switch (st) {
-            case load_srgb:    f = ::load_srgb;    break;
-            case scale_u8:     f = ::scale_u8;     break;
-            case srcover_srgb: f = ::srcover_srgb; break;
-        }
-        f1_stages.push_back({ reinterpret_cast<void(*)(void)>(f), const_cast<void*>(ctx) });
     }
 
     {
@@ -178,6 +170,16 @@ void pipeline::add_stage(Stage st, const void* ctx) {
             case srcover_srgb: f = ::srcover_srgb; break;
         }
         f4_stages.push_back({ reinterpret_cast<void(*)(void)>(f), const_cast<void*>(ctx) });
+    }
+
+    {
+        f1_fn f = nullptr;
+        switch (st) {
+            case load_srgb:    f = ::load_srgb;    break;
+            case scale_u8:     f = ::scale_u8;     break;
+            case srcover_srgb: f = ::srcover_srgb; break;
+        }
+        f1_stages.push_back({ reinterpret_cast<void(*)(void)>(f), const_cast<void*>(ctx) });
     }
 }
 
@@ -192,13 +194,13 @@ static void rewire(std::vector<stage>* stages) {
 }
 
 void pipeline::ready() {
-    rewire(&f1_stages);
     rewire(&f4_stages);
+    rewire(&f1_stages);
 }
 
 void pipeline::call(size_t n) {
-    assert (f1_stages.size() > 0);
     assert (f4_stages.size() > 0);
+    assert (f1_stages.size() > 0);
 
     size_t x = 0;
     while (n >= 4) {
