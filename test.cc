@@ -15,18 +15,11 @@ static uint32_t dst[1023], src[1023];
 static uint8_t cov[1023];
 
 int main(int argc, char** argv) {
-    int choice = argc > 1 ? atoi(argv[1]) : 0;
+    int n = argc > 1 ? atoi(argv[1]) : 1;
 
-    if (choice) {
-        for (int j = 0; j < 100000; j++) {
-            switch (choice) {
-                case 1: with_pipeline(dst, src, cov, 1023); break;
-            }
-        }
-        return 0;
+    for (int j = 0; j < n; j++) {
+        with_pipeline(dst, src, cov, 1023);
     }
-
-    with_pipeline(dst, src, cov, 1023);
 
     return 0;
 }

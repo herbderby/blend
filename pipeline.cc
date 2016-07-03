@@ -29,7 +29,7 @@ static inline void srgb_to_floats(const uint32_t srgb[1], f1* r, f1* g, f1* b, f
     *r = srgb_to_float[(*srgb >>  0) & 0xff];
     *g = srgb_to_float[(*srgb >>  8) & 0xff];
     *b = srgb_to_float[(*srgb >> 16) & 0xff];
-    *a = (*srgb >> 24) * (1/255.0f);  // TODO: check for bad cvtsi2ss
+    *a = (*srgb >> 24) * (1/255.0f);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -43,14 +43,14 @@ static inline f4 clamp_0_255(f4 x) {
 
 static inline f4 to_srgb(f4 l) {
     f4 rsqrt = _mm_rsqrt_ps(l),
-       sqrt = _mm_rcp_ps(rsqrt),
-       ftrt = _mm_rsqrt_ps(rsqrt);
+        sqrt = _mm_rcp_ps(rsqrt),
+        ftrt = _mm_rsqrt_ps(rsqrt);
 
     f4 lo = _mm_mul_ps(_mm_set1_ps(12.92f * 255.0f), l);
 
     f4 hi = _mm_add_ps(_mm_mul_ps(_mm_set1_ps(+0.422602055039580f * 255.0f), ftrt),
             _mm_add_ps(_mm_mul_ps(_mm_set1_ps(+0.678513029959381f * 255.0f), sqrt),
-                _mm_set1_ps(-0.101115084998961f * 255.0f)));
+                                  _mm_set1_ps(-0.101115084998961f * 255.0f)));
 
     return _mm_blendv_ps(hi, lo, _mm_cmplt_ps(l, _mm_set1_ps(0.00349f)));
 }
@@ -127,7 +127,7 @@ static bool load_srgb(void* ctx, size_t x, f1* r, f1* g, f1* b, f1* a) {
 
 static bool scale_u8(void* ctx, size_t x, f1* r, f1* g, f1* b, f1* a) {
     auto cov  = static_cast<const uint8_t*>(ctx);
-    f1 c = cov[x] * (1/255.0f); // TODO: check for bad cvtsi2ss
+    f1 c = cov[x] * (1/255.0f);
     *r *= c;
     *g *= c;
     *b *= c;
@@ -212,7 +212,7 @@ void pipeline::call(size_t n) {
         n -= 4;
     }
     while (n > 0) {
-        f1 u = 0.0f;
+        f1 u = _mm_undefined_ps()[0];
         auto start = reinterpret_cast<f1_fn>(f1_stages.back().next);
         start(f1_stages.data(), x, u,u,u,u);
 
