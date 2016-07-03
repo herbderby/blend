@@ -4,27 +4,21 @@
 #include <stddef.h>
 #include <vector>
 
-void fused(uint32_t* dst, const uint32_t* src, const uint8_t* cov, size_t n);
-
 struct stage {
     void (*next)(void);
-    const void* ctx;
+    void* ctx;
 };
 
 struct pipeline {
-    enum Stage { load_d_srgb, load_s_srgb, srcover, lerp_u8, store_s_srgb };
+    enum Stage { load_srgb, scale_u8, srcover_srgb };
 
     void add_stage(Stage, const void* ctx);
     void ready();
 
-    void call(void* dp, size_t n) const;
+    void call(size_t n);
 
 private:
-    size_t call_avx2_stages(void* dp, size_t n) const;
-
-    void add_avx2_stage(Stage, const void* ctx);
-
-    std::vector<stage> narrow_stages,
-                         wide_stages,
-                         avx2_stages;
+    std::vector<stage> f1_stages,
+                       f4_stages,
+                       f8_stages;
 };

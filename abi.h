@@ -1,4 +1,5 @@
 #pragma once
+#include <stddef.h>
 
 // What registers can we use to tail call arguments through a pipeline?
 //
@@ -19,46 +20,35 @@
     #define ABI
 #endif
 
-#include <immintrin.h>
+using f1 = float;
+using f4 = float __attribute__((__vector_size__(16)));
+using f8 = float __attribute__((__vector_size__(32)));
 
 struct stage;
+using f1_fn = ABI void(*)(stage*, size_t, f1, f1, f1, f1);
+using f4_fn = ABI void(*)(stage*, size_t, f4, f4, f4, f4);
+using f8_fn = ABI void(*)(stage*, size_t, f8, f8, f8, f8);
 
-using narrow_xmm = ABI void(*)(const stage*, size_t, void*,
-                               __m128, __m128);
-
-#define EXPORT_NARROW_XMM(name)                                       \
-  static ABI void name(const stage* st, size_t x, void* dp,           \
-                       __m128 d, __m128 s) {                          \
-      if (!name(st->ctx, x,dp,&d,&s)) {                               \
-          auto next = reinterpret_cast<narrow_xmm>(st->next);         \
-          next(st+1, x,dp,d,s);                                       \
+#define EXPORT_F1(name)                                               \
+  static ABI void name(stage* st, size_t x, f1 r, f1 g, f1 b, f1 a) { \
+      if (!name(st->ctx, x, &r,&g,&b,&a)) {                           \
+          auto next = reinterpret_cast<f1_fn>(st->next);              \
+          next(st+1, x, r,g,b,a);                                     \
       }                                                               \
   }
 
-using wide_xmm = ABI void(*)(const stage*, size_t, void*,
-                             __m128, __m128, __m128, __m128,
-                             __m128, __m128, __m128, __m128);
-
-#define EXPORT_WIDE_XMM(name)                                         \
-  static ABI void name(const stage* st, size_t x, void* dp,           \
-                       __m128 dr, __m128 dg, __m128 db, __m128 da,    \
-                       __m128 sr, __m128 sg, __m128 sb, __m128 sa) {  \
-      if (!name(st->ctx, x,dp, &dr,&dg,&db,&da, &sr,&sg,&sb,&sa)) {   \
-          auto next = reinterpret_cast<wide_xmm>(st->next);           \
-          next(st+1, x,dp, dr,dg,db,da, sr,sg,sb,sa);                 \
+#define EXPORT_F4(name)                                               \
+  static ABI void name(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) { \
+      if (!name(st->ctx, x, &r,&g,&b,&a)) {                           \
+          auto next = reinterpret_cast<f4_fn>(st->next);              \
+          next(st+1, x, r,g,b,a);                                     \
       }                                                               \
   }
 
-using wide_ymm = ABI void(*)(const stage*, size_t, void*,
-                             __m256, __m256, __m256, __m256,
-                             __m256, __m256, __m256, __m256);
-
-#define EXPORT_WIDE_YMM(name)                                         \
-  static ABI void name(const stage* st, size_t x, void* dp,           \
-                       __m256 dr, __m256 dg, __m256 db, __m256 da,    \
-                       __m256 sr, __m256 sg, __m256 sb, __m256 sa) {  \
-      if (!name(st->ctx, x,dp, &dr,&dg,&db,&da, &sr,&sg,&sb,&sa)) {   \
-          auto next = reinterpret_cast<wide_ymm>(st->next);           \
-          next(st+1, x,dp, dr,dg,db,da, sr,sg,sb,sa);                 \
+#define EXPORT_F8(name)                                               \
+  static ABI void name(stage* st, size_t x, f8 r, f8 g, f8 b, f8 a) { \
+      if (!name(st->ctx, x, &r,&g,&b,&a)) {                           \
+          auto next = reinterpret_cast<f8_fn>(st->next);              \
+          next(st+1, x, r,g,b,a);                                     \
       }                                                               \
   }
