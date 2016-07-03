@@ -6,6 +6,11 @@
 
 void fused(uint32_t* dst, const uint32_t* src, const uint8_t* cov, size_t n);
 
+struct stage {
+    void (*next)(void);
+    const void* ctx;
+};
+
 struct pipeline {
     enum Stage { load_d_srgb, load_s_srgb, srcover, lerp_u8, store_s_srgb };
 
@@ -13,11 +18,6 @@ struct pipeline {
     void ready();
 
     void call(void* dp, size_t n) const;
-
-    struct stage {
-        void (*next)(void);
-        const void* ctx;
-    };
 
 private:
     size_t call_avx2_stages(void* dp, size_t n) const;

@@ -95,10 +95,6 @@ static inline void floats_to_srgb_T(uint32_t srgb[8], __m256 r, __m256 g, __m256
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-using wide_ymm = ABI void(*)(const pipeline::stage*, size_t, void*,
-                             __m256, __m256, __m256, __m256,
-                             __m256, __m256, __m256, __m256);
-
 static bool load_d_srgb(const void*, size_t x, void* dp,
                         __m256* dr, __m256* dg, __m256* db, __m256* da,
                         __m256*   , __m256*   , __m256*   , __m256*   ) {

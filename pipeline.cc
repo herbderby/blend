@@ -81,8 +81,6 @@ static inline void floats_to_srgb_T(uint32_t srgb[4], __m128 r, __m128 g, __m128
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-using narrow_xmm = ABI void(*)(const pipeline::stage*, size_t, void*, __m128, __m128);
-
 static bool load_d_srgb(const void*, size_t x, void* dp, __m128* d, __m128*) {
     auto dst = static_cast<uint32_t*>(dp);
     *d = srgb_to_floats(dst[x]);
@@ -123,10 +121,6 @@ EXPORT_NARROW_XMM(lerp_u8)
 EXPORT_NARROW_XMM(store_s_srgb)
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
-
-using wide_xmm = ABI void(*)(const pipeline::stage*, size_t, void*,
-                             __m128, __m128, __m128, __m128,
-                             __m128, __m128, __m128, __m128);
 
 static bool load_d_srgb(const void*, size_t x, void* dp,
                         __m128* dr, __m128* dg, __m128* db, __m128* da,
@@ -218,7 +212,7 @@ void pipeline::add_stage(Stage st, const void* ctx) {
     this->add_avx2_stage(st, ctx);
 }
 
-static void rewire(std::vector<pipeline::stage>* stages) {
+static void rewire(std::vector<stage>* stages) {
     assert (stages->size() > 0);
 
     auto start = (*stages)[0].next;
