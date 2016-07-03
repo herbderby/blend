@@ -20,9 +20,6 @@
     #define ABI
 #endif
 
+using f8 = float __attribute__((__vector_size__(32)));
 using f4 = float __attribute__((__vector_size__(16)));
 using f1 = float;
-
-struct stage;
-using f4_fn = ABI void(*)(stage*, size_t, f4, f4, f4, f4);
-using f1_fn = ABI void(*)(stage*, size_t, f1, f1, f1, f1);

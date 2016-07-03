@@ -122,6 +122,8 @@ static void srcover_srgb(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+//
+using f1_fn = ABI void(*)(stage*, size_t, f1, f1, f1, f1);
 
 static void next(stage* st, size_t x, f1 r, f1 g, f1 b, f1 a) {
     auto next = reinterpret_cast<f1_fn>(st->next);
@@ -163,10 +165,12 @@ static void srcover_srgb(stage* st, size_t x, f1 r, f1 g, f1 b, f1 a) {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
 void pipeline::add_stage(Stage st, const void* ctx) {
-    if (f1_stages.size() == 0) {
-        f1_stages.reserve(8);
+    if (f4_stages.size() == 0) {
         f4_stages.reserve(8);
+        f1_stages.reserve(8);
     }
+
+    this->add_f8_stage(st, ctx);
 
     {
         f4_fn f = nullptr;
@@ -189,17 +193,16 @@ void pipeline::add_stage(Stage st, const void* ctx) {
     }
 }
 
-static void rewire(std::vector<stage>* stages) {
-    assert (stages->size() > 0);
-
-    auto start = (*stages)[0].next;
-    for (size_t i = 0; i < stages->size(); i++) {
-        (*stages)[i].next = (*stages)[i+1].next;
-    }
-    (*stages)[stages->size() - 1].next = start;
-}
-
 void pipeline::ready() {
+    auto rewire = [](std::vector<stage>* stages) {
+        auto start = (*stages)[0].next;
+        for (size_t i = 0; i < stages->size(); i++) {
+            (*stages)[i].next = (*stages)[i+1].next;
+        }
+        (*stages)[stages->size() - 1].next = start;
+    };
+
+    rewire(&f8_stages);
     rewire(&f4_stages);
     rewire(&f1_stages);
 }
@@ -208,7 +211,9 @@ void pipeline::call(size_t n) {
     assert (f4_stages.size() > 0);
     assert (f1_stages.size() > 0);
 
-    size_t x = 0;
+    size_t x = this->call_f8(n);
+    n -= x;
+
     while (n >= 4) {
         f4 u = _mm_undefined_ps();
         auto start = reinterpret_cast<f4_fn>(f4_stages.back().next);
