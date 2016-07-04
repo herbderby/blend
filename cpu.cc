@@ -1,14 +1,15 @@
 #include "cpu.h"
 #include <cpuid.h>
 
-static uint32_t cpu_features() {
+uint32_t cpu::features = 0;
+
+void cpu::read_features() {
     auto xgetbv = [](uint32_t xcr) {
         uint32_t eax, edx;
         __asm__ __volatile__("xgetbv": "=a"(eax), "=d"(edx) : "c"(xcr));
         return static_cast<uint64_t>(edx) << 32 | static_cast<uint64_t>(eax);
     };
 
-    uint32_t features = 0;
     uint32_t eax,ebx,ecx,edx;
 
     __cpuid(1, eax, ebx, ecx, edx);
@@ -25,11 +26,4 @@ static uint32_t cpu_features() {
         if (ebx & (1<< 3)) { features |= cpu::BMI1; }
         if (ebx & (1<< 8)) { features |= cpu::BMI2; }
     }
-
-    return features;
-}
-
-bool cpu::supports(uint32_t mask) {
-    static uint32_t features = cpu_features();
-    return (features & mask) == mask;
 }

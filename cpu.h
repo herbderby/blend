@@ -13,5 +13,10 @@ struct cpu {
         BMI2  = 1 << 6
     };
 
-    static bool supports(uint32_t mask);
+    static bool supports(uint32_t mask) {
+        return (features & mask) == mask;
+    }
+
+    static void read_features();
+    static uint32_t features;
 };

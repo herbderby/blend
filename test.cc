@@ -1,3 +1,4 @@
+#include "cpu.h"
 #include "pipeline.h"
 #include <stdlib.h>
 
@@ -15,6 +16,8 @@ static uint32_t dst[1023], src[1023];
 static uint8_t cov[1023];
 
 int main(int argc, char** argv) {
+    cpu::read_features();
+
     int n = argc > 1 ? atoi(argv[1]) : 1;
 
     for (int j = 0; j < n; j++) {
