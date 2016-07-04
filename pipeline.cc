@@ -87,14 +87,14 @@ static void next(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
     next(st+1, x, r,g,b,a);
 }
 
-static void load_srgb(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
+static ABI void load_srgb(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
     auto src = static_cast<const uint32_t*>(st->ctx);
     srgb_to_floats(src+x, &r,&g,&b,&a);
 
     next(st,x,r,g,b,a);
 }
 
-static void scale_u8(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
+static ABI void scale_u8(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
     auto cov  = static_cast<const uint8_t*>(st->ctx);
     auto cov4 = reinterpret_cast<const int*>(cov+x);
     f4 c = _mm_mul_ps(_mm_set1_ps(1/255.0f),
@@ -107,7 +107,7 @@ static void scale_u8(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
     next(st,x,r,g,b,a);
 }
 
-static void srcover_srgb(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
+static ABI void srcover_srgb(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
     auto dst = static_cast<uint32_t*>(st->ctx);
     f4 dr,dg,db,da;
     srgb_to_floats(dst+x, &dr,&dg,&db,&da);
@@ -130,14 +130,14 @@ static void next(stage* st, size_t x, f1 r, f1 g, f1 b, f1 a) {
     next(st+1, x, r,g,b,a);
 }
 
-static void load_srgb(stage* st, size_t x, f1 r, f1 g, f1 b, f1 a) {
+static ABI void load_srgb(stage* st, size_t x, f1 r, f1 g, f1 b, f1 a) {
     auto src = static_cast<const uint32_t*>(st->ctx);
     srgb_to_floats(src+x, &r,&g,&b,&a);
 
     next(st,x,r,g,b,a);
 }
 
-static void scale_u8(stage* st, size_t x, f1 r, f1 g, f1 b, f1 a) {
+static ABI void scale_u8(stage* st, size_t x, f1 r, f1 g, f1 b, f1 a) {
     auto cov  = static_cast<const uint8_t*>(st->ctx);
     f1 c = cov[x] * (1/255.0f);
     r *= c;
@@ -148,7 +148,7 @@ static void scale_u8(stage* st, size_t x, f1 r, f1 g, f1 b, f1 a) {
     next(st,x,r,g,b,a);
 }
 
-static void srcover_srgb(stage* st, size_t x, f1 r, f1 g, f1 b, f1 a) {
+static ABI void srcover_srgb(stage* st, size_t x, f1 r, f1 g, f1 b, f1 a) {
     auto dst = static_cast<uint32_t*>(st->ctx);
     f1 dr,dg,db,da;
     srgb_to_floats(dst+x, &dr,&dg,&db,&da);
