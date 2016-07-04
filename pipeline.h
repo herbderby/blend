@@ -11,7 +11,7 @@ struct stage {
 };
 
 struct pipeline {
-    enum Stage { load_srgb, scale_u8, srcover_srgb, store_u8_srgb };
+    enum Stage { load_srgb, scale_u8, srcover_srgb, lerp_u8_srgb, store_srgb };
 
     void add_stage(Stage, const void* ctx, void* dtx);
     void ready();

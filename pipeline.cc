@@ -68,7 +68,7 @@ static ABI void scale_u8(stage* st, size_t x, float r, float g, float b, float a
 }
 
 static ABI void srcover_srgb(stage* st, size_t x, float r, float g, float b, float a) {
-    auto dst = static_cast<uint32_t*>(st->dtx);
+    auto dst = static_cast<const uint32_t*>(st->ctx);
     float dr,dg,db,da;
     srgb_to_floats(dst+x, &dr,&dg,&db,&da);
 
@@ -78,23 +78,28 @@ static ABI void srcover_srgb(stage* st, size_t x, float r, float g, float b, flo
     b += db * A;
     a += da * A;
 
-    floats_to_srgb(dst+x, r,g,b,a);
+    next(st,x,r,g,b,a);
 }
 
-static ABI void store_u8_srgb(stage* st, size_t x, float r, float g, float b, float a) {
+static ABI void lerp_u8_srgb(stage* st, size_t x, float r, float g, float b, float a) {
     auto cov = static_cast<const uint8_t*>(st->ctx);
     float c = cov[x] * (1/255.0f);
 
-    auto dst = static_cast<uint32_t*>(st->dtx);
+    auto dst = static_cast<const uint32_t*>(st->dtx);
     float dr,dg,db,da;
     srgb_to_floats(dst+x, &dr,&dg,&db,&da);
 
-    dr += (r-dr)*c;
-    dg += (g-dg)*c;
-    db += (b-db)*c;
-    da += (a-da)*c;
+    r = dr + (r-dr)*c;
+    g = dg + (g-dg)*c;
+    b = db + (b-db)*c;
+    a = da + (a-da)*c;
 
-    floats_to_srgb(dst+x, dr,dg,db,da);
+    next(st,x,r,g,b,a);
+}
+
+static ABI void store_srgb(stage* st, size_t x, float r, float g, float b, float a) {
+    auto dst = static_cast<uint32_t*>(st->dtx);
+    floats_to_srgb(dst+x, r,g,b,a);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -112,7 +117,8 @@ void pipeline::add_stage(Stage st, const void* ctx, void* dtx) {
         case load_srgb:     f = ::load_srgb;     break;
         case scale_u8:      f = ::scale_u8;      break;
         case srcover_srgb:  f = ::srcover_srgb;  break;
-        case store_u8_srgb: f = ::store_u8_srgb; break;
+        case lerp_u8_srgb:  f = ::lerp_u8_srgb;  break;
+        case store_srgb:    f = ::store_srgb;    break;
     }
     float_stages.push_back({ reinterpret_cast<void(*)(void)>(f), ctx, dtx });
 }
