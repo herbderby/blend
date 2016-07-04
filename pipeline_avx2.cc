@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <immintrin.h>
 
+using f8 = __m256;
+
 static inline void srgb_to_floats(const uint32_t srgb[8], f8* r, f8* g, f8* b, f8* a) {
     *r = { srgb_to_float[(srgb[0] >>  0) & 0xff],
            srgb_to_float[(srgb[1] >>  0) & 0xff],
@@ -37,28 +39,28 @@ static inline void srgb_to_floats(const uint32_t srgb[8], f8* r, f8* g, f8* b, f
                        _mm256_cvtepi32_ps(_mm256_srli_epi32(_mm256_loadu_si256(p), 24)));
 }
 
-static inline f8 clamp_0_255(f8 x) {
-    // max/min order and argument order both matter.  This clamps NaN to 0.
-    x = _mm256_max_ps(x, _mm256_set1_ps(0));
-    x = _mm256_min_ps(x, _mm256_set1_ps(255));
-    return x;
-}
-
-static inline f8 to_srgb(f8 l) {
-    f8 rsqrt = _mm256_rsqrt_ps(l),
-        sqrt = _mm256_rcp_ps(rsqrt),
-        ftrt = _mm256_rsqrt_ps(rsqrt);
-
-    f8 lo = _mm256_mul_ps(_mm256_set1_ps(12.92f * 255.0f), l);
-
-    f8 hi = _mm256_add_ps(_mm256_mul_ps(_mm256_set1_ps(+0.422602055039580f * 255.0f), ftrt),
-            _mm256_add_ps(_mm256_mul_ps(_mm256_set1_ps(+0.678513029959381f * 255.0f), sqrt),
-                                        _mm256_set1_ps(-0.101115084998961f * 255.0f)));
-
-    return _mm256_blendv_ps(hi, lo, _mm256_cmp_ps(l, _mm256_set1_ps(0.00349f), _CMP_LT_OS));
-}
-
 static inline void floats_to_srgb(uint32_t srgb[8], f8 r, f8 g, f8 b, f8 a) {
+    auto to_srgb = [](f8 l) {
+        f8 rsqrt = _mm256_rsqrt_ps(l),
+            sqrt = _mm256_rcp_ps(rsqrt),
+            ftrt = _mm256_rsqrt_ps(rsqrt);
+
+        f8 lo = _mm256_mul_ps(_mm256_set1_ps(12.92f * 255.0f), l);
+
+        f8 hi = _mm256_add_ps(_mm256_mul_ps(_mm256_set1_ps(+0.422602055039580f * 255.0f), ftrt),
+                _mm256_add_ps(_mm256_mul_ps(_mm256_set1_ps(+0.678513029959381f * 255.0f), sqrt),
+                                            _mm256_set1_ps(-0.101115084998961f * 255.0f)));
+
+        return _mm256_blendv_ps(hi, lo, _mm256_cmp_ps(l, _mm256_set1_ps(0.00349f), _CMP_LT_OS));
+    };
+
+    auto clamp_0_255 = [](f8 x) {
+        // max/min order and argument order both matter.  This clamps NaN to 0.
+        x = _mm256_max_ps(x, _mm256_set1_ps(0));
+        x = _mm256_min_ps(x, _mm256_set1_ps(255));
+        return x;
+    };
+
     r = clamp_0_255(to_srgb(r));
     g = clamp_0_255(to_srgb(g));
     b = clamp_0_255(to_srgb(b));
@@ -73,11 +75,11 @@ static inline void floats_to_srgb(uint32_t srgb[8], f8 r, f8 g, f8 b, f8 a) {
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-using f8_fn = ABI void(*)(stage*, size_t, f8, f8, f8, f8);
+using avx2_fn = ABI void(*)(stage*, size_t, f8, f8, f8, f8);
 
 static void next(stage* st, size_t x, f8 r, f8 g, f8 b, f8 a) {
-    auto next = reinterpret_cast<f8_fn>(st->next);
-    next(st+1, x, r,g,b,a);
+    auto jump = reinterpret_cast<avx2_fn>(st->next);
+    jump(st+1, x, r,g,b,a);
 }
 
 static ABI void load_srgb(stage* st, size_t x, f8 r, f8 g, f8 b, f8 a) {
@@ -116,31 +118,28 @@ static ABI void srcover_srgb(stage* st, size_t x, f8 r, f8 g, f8 b, f8 a) {
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-void pipeline::add_f8_stage(Stage st, const void* ctx) {
-    if (f8_stages.size() == 0) {
-        f8_stages.reserve(8);
+void pipeline::add_avx2(Stage st, const void* ctx) {
+    if (avx2_stages.size() == 0) {
+        avx2_stages.reserve(8);
     }
 
-    f8_fn f = nullptr;
+    avx2_fn f = nullptr;
     switch (st) {
         case load_srgb:    f = ::load_srgb;    break;
         case scale_u8:     f = ::scale_u8;     break;
         case srcover_srgb: f = ::srcover_srgb; break;
     }
-    f8_stages.push_back({ reinterpret_cast<void(*)(void)>(f), const_cast<void*>(ctx) });
+    avx2_stages.push_back({ reinterpret_cast<void(*)(void)>(f), const_cast<void*>(ctx) });
 }
 
-size_t pipeline::call_f8(size_t n) {
-    assert (f8_stages.size() > 0);
+void pipeline::call_avx2(size_t* x, size_t* n) {
+    assert (avx2_stages.size() > 0);
 
-    size_t x = 0;
-    while (n >= 8) {
-        f8 u = _mm256_undefined_ps();
-        auto start = reinterpret_cast<f8_fn>(f8_stages.back().next);
-        start(f8_stages.data(), x, u,u,u,u);
-
-        x += 8;
-        n -= 8;
+    f8 u = _mm256_undefined_ps();
+    auto start = reinterpret_cast<avx2_fn>(avx2_stages.back().next);
+    while (*n >= 8) {
+        start(avx2_stages.data(), *x, u,u,u,u);
+        *x += 8;
+        *n -= 8;
     }
-    return x;
 }

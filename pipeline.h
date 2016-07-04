@@ -18,11 +18,13 @@ struct pipeline {
     void call(size_t n);
 
 private:
-    void add_f8_stage(Stage, const void* ctx);
+    void add_avx2 (Stage, const void* ctx);
+    void add_sse41(Stage, const void* ctx);
 
-    size_t call_f8(size_t n);
+    void call_avx2 (size_t* x, size_t* n);
+    void call_sse41(size_t* x, size_t* n);
 
-    std::vector<stage> f8_stages,
-                       f4_stages,
-                       f1_stages;
+    std::vector<stage> avx2_stages,
+                      sse41_stages,
+                      float_stages;
 };

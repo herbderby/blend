@@ -1,5 +1,4 @@
 #pragma once
-#include <stddef.h>
 
 // What registers can we use to tail call arguments through a pipeline?
 //
@@ -19,7 +18,3 @@
 #else
     #define ABI
 #endif
-
-using f8 = float __attribute__((__vector_size__(32)));
-using f4 = float __attribute__((__vector_size__(16)));
-using f1 = float;
