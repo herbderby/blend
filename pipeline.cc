@@ -56,8 +56,9 @@ static ABI void load_srgb(stage* st, size_t x, float r, float g, float b, float 
 }
 
 static ABI void scale_u8(stage* st, size_t x, float r, float g, float b, float a) {
-    auto cov  = static_cast<const uint8_t*>(st->ctx);
+    auto cov = static_cast<const uint8_t*>(st->ctx);
     float c = cov[x] * (1/255.0f);
+
     r *= c;
     g *= c;
     b *= c;
@@ -67,36 +68,53 @@ static ABI void scale_u8(stage* st, size_t x, float r, float g, float b, float a
 }
 
 static ABI void srcover_srgb(stage* st, size_t x, float r, float g, float b, float a) {
-    auto dst = static_cast<uint32_t*>(st->ctx);
+    auto dst = static_cast<uint32_t*>(st->dtx);
     float dr,dg,db,da;
     srgb_to_floats(dst+x, &dr,&dg,&db,&da);
 
-    float A = 1.0f - a;
+    float A = 1 - a;
     r += dr * A;
     g += dg * A;
     b += db * A;
     a += da * A;
 
-    floats_to_srgb(dst+x, r, g, b, a);
+    floats_to_srgb(dst+x, r,g,b,a);
+}
+
+static ABI void store_u8_srgb(stage* st, size_t x, float r, float g, float b, float a) {
+    auto cov = static_cast<const uint8_t*>(st->ctx);
+    float c = cov[x] * (1/255.0f);
+
+    auto dst = static_cast<uint32_t*>(st->dtx);
+    float dr,dg,db,da;
+    srgb_to_floats(dst+x, &dr,&dg,&db,&da);
+
+    dr += (r-dr)*c;
+    dg += (g-dg)*c;
+    db += (b-db)*c;
+    da += (a-da)*c;
+
+    floats_to_srgb(dst+x, dr,dg,db,da);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-void pipeline::add_stage(Stage st, const void* ctx) {
+void pipeline::add_stage(Stage st, const void* ctx, void* dtx) {
     if (float_stages.size() == 0) {
         float_stages.reserve(8);
     }
 
-    this->add_avx2 (st, ctx);
-    this->add_sse41(st, ctx);
+    this->add_avx2 (st, ctx, dtx);
+    this->add_sse41(st, ctx, dtx);
 
     float_fn f = nullptr;
     switch (st) {
-        case load_srgb:    f = ::load_srgb;    break;
-        case scale_u8:     f = ::scale_u8;     break;
-        case srcover_srgb: f = ::srcover_srgb; break;
+        case load_srgb:     f = ::load_srgb;     break;
+        case scale_u8:      f = ::scale_u8;      break;
+        case srcover_srgb:  f = ::srcover_srgb;  break;
+        case store_u8_srgb: f = ::store_u8_srgb; break;
     }
-    float_stages.push_back({ reinterpret_cast<void(*)(void)>(f), const_cast<void*>(ctx) });
+    float_stages.push_back({ reinterpret_cast<void(*)(void)>(f), ctx, dtx });
 }
 
 void pipeline::ready() {

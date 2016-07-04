@@ -6,20 +6,21 @@
 
 struct stage {
     void (*next)(void);
-    void* ctx;
+    const void* ctx;
+    void* dtx;
 };
 
 struct pipeline {
-    enum Stage { load_srgb, scale_u8, srcover_srgb };
+    enum Stage { load_srgb, scale_u8, srcover_srgb, store_u8_srgb };
 
-    void add_stage(Stage, const void* ctx);
+    void add_stage(Stage, const void* ctx, void* dtx);
     void ready();
 
     void call(size_t n);
 
 private:
-    void add_avx2 (Stage, const void* ctx);
-    void add_sse41(Stage, const void* ctx);
+    void add_avx2 (Stage, const void* ctx, void* dtx);
+    void add_sse41(Stage, const void* ctx, void* dtx);
 
     void call_avx2 (size_t* x, size_t* n);
     void call_sse41(size_t* x, size_t* n);

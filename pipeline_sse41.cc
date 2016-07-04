@@ -61,6 +61,12 @@ static inline void floats_to_srgb(uint32_t srgb[4], f4 r, f4 g, f4 b, f4 a) {
     _mm_storeu_si128(reinterpret_cast<__m128i*>(srgb), rgba);
 }
 
+static f4 load_u8(const uint8_t cov[4]) {
+    auto cov4 = reinterpret_cast<const int*>(cov);
+    return _mm_mul_ps(_mm_set1_ps(1/255.0f),
+                      _mm_cvtepi32_ps(_mm_cvtepu8_epi32(_mm_cvtsi32_si128(*cov4))));
+}
+
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
 using sse41_fn = ABI void(*)(stage*, size_t, f4, f4, f4, f4);
@@ -78,10 +84,8 @@ static ABI void load_srgb(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
 }
 
 static ABI void scale_u8(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
-    auto cov  = static_cast<const uint8_t*>(st->ctx);
-    auto cov4 = reinterpret_cast<const int*>(cov+x);
-    f4 c = _mm_mul_ps(_mm_set1_ps(1/255.0f),
-                      _mm_cvtepi32_ps(_mm_cvtepu8_epi32(_mm_cvtsi32_si128(*cov4))));
+    auto cov = static_cast<const uint8_t*>(st->ctx);
+    f4 c = load_u8(cov+x);
     r *= c;
     g *= c;
     b *= c;
@@ -91,7 +95,7 @@ static ABI void scale_u8(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
 }
 
 static ABI void srcover_srgb(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
-    auto dst = static_cast<uint32_t*>(st->ctx);
+    auto dst = static_cast<uint32_t*>(st->dtx);
     f4 dr,dg,db,da;
     srgb_to_floats(dst+x, &dr,&dg,&db,&da);
 
@@ -101,23 +105,40 @@ static ABI void srcover_srgb(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
     b += db * A;
     a += da * A;
 
-    floats_to_srgb(dst+x, r, g, b, a);
+    floats_to_srgb(dst+x, r,g,b,a);
+}
+
+static ABI void store_u8_srgb(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
+    auto cov = static_cast<const uint8_t*>(st->ctx);
+    f4 c = load_u8(cov+x);
+
+    auto dst = static_cast<uint32_t*>(st->dtx);
+    f4 dr,dg,db,da;
+    srgb_to_floats(dst+x, &dr,&dg,&db,&da);
+
+    dr += (r-dr)*c;
+    dg += (g-dg)*c;
+    db += (b-db)*c;
+    da += (a-da)*c;
+
+    floats_to_srgb(dst+x, dr,dg,db,da);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-void pipeline::add_sse41(Stage st, const void* ctx) {
+void pipeline::add_sse41(Stage st, const void* ctx, void* dtx) {
     if (sse41_stages.size() == 0) {
         sse41_stages.reserve(8);
     }
 
     sse41_fn f = nullptr;
     switch (st) {
-        case load_srgb:    f = ::load_srgb;    break;
-        case scale_u8:     f = ::scale_u8;     break;
-        case srcover_srgb: f = ::srcover_srgb; break;
+        case load_srgb:     f = ::load_srgb;     break;
+        case scale_u8:      f = ::scale_u8;      break;
+        case srcover_srgb:  f = ::srcover_srgb;  break;
+        case store_u8_srgb: f = ::store_u8_srgb; break;
     }
-    sse41_stages.push_back({ reinterpret_cast<void(*)(void)>(f), const_cast<void*>(ctx) });
+    sse41_stages.push_back({ reinterpret_cast<void(*)(void)>(f), ctx, dtx });
 }
 
 void pipeline::call_sse41(size_t* x, size_t* n) {

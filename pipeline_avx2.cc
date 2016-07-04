@@ -73,6 +73,12 @@ static inline void floats_to_srgb(uint32_t srgb[8], f8 r, f8 g, f8 b, f8 a) {
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(srgb), rgba);
 }
 
+static f8 load_u8(const uint8_t cov[8]) {
+    auto cov8 = reinterpret_cast<const __m128i*>(cov);
+    return _mm256_mul_ps(_mm256_set1_ps(1/255.0f),
+                         _mm256_cvtepi32_ps(_mm256_cvtepu8_epi32(_mm_loadl_epi64(cov8))));
+}
+
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
 using avx2_fn = ABI void(*)(stage*, size_t, f8, f8, f8, f8);
@@ -91,9 +97,7 @@ static ABI void load_srgb(stage* st, size_t x, f8 r, f8 g, f8 b, f8 a) {
 
 static ABI void scale_u8(stage* st, size_t x, f8 r, f8 g, f8 b, f8 a) {
     auto cov  = static_cast<const uint8_t*>(st->ctx);
-    auto cov8 = reinterpret_cast<const __m128i*>(cov+x);
-    f8 c = _mm256_mul_ps(_mm256_set1_ps(1/255.0f),
-                         _mm256_cvtepi32_ps(_mm256_cvtepu8_epi32(_mm_loadl_epi64(cov8))));
+    f8 c = load_u8(cov+x);
     r *= c;
     g *= c;
     b *= c;
@@ -103,7 +107,7 @@ static ABI void scale_u8(stage* st, size_t x, f8 r, f8 g, f8 b, f8 a) {
 }
 
 static ABI void srcover_srgb(stage* st, size_t x, f8 r, f8 g, f8 b, f8 a) {
-    auto dst = static_cast<uint32_t*>(st->ctx);
+    auto dst = static_cast<uint32_t*>(st->dtx);
     f8 dr,dg,db,da;
     srgb_to_floats(dst+x, &dr,&dg,&db,&da);
 
@@ -116,20 +120,37 @@ static ABI void srcover_srgb(stage* st, size_t x, f8 r, f8 g, f8 b, f8 a) {
     floats_to_srgb(dst+x, r, g, b, a);
 }
 
+static ABI void store_u8_srgb(stage* st, size_t x, f8 r, f8 g, f8 b, f8 a) {
+    auto cov = static_cast<const uint8_t*>(st->ctx);
+    f8 c = load_u8(cov+x);
+
+    auto dst = static_cast<uint32_t*>(st->dtx);
+    f8 dr,dg,db,da;
+    srgb_to_floats(dst+x, &dr,&dg,&db,&da);
+
+    dr += (r-dr)*c;
+    dg += (g-dg)*c;
+    db += (b-db)*c;
+    da += (a-da)*c;
+
+    floats_to_srgb(dst+x, dr,dg,db,da);
+}
+
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-void pipeline::add_avx2(Stage st, const void* ctx) {
+void pipeline::add_avx2(Stage st, const void* ctx, void* dtx) {
     if (avx2_stages.size() == 0) {
         avx2_stages.reserve(8);
     }
 
     avx2_fn f = nullptr;
     switch (st) {
-        case load_srgb:    f = ::load_srgb;    break;
-        case scale_u8:     f = ::scale_u8;     break;
-        case srcover_srgb: f = ::srcover_srgb; break;
+        case load_srgb:     f = ::load_srgb;     break;
+        case scale_u8:      f = ::scale_u8;      break;
+        case srcover_srgb:  f = ::srcover_srgb;  break;
+        case store_u8_srgb: f = ::store_u8_srgb; break;
     }
-    avx2_stages.push_back({ reinterpret_cast<void(*)(void)>(f), const_cast<void*>(ctx) });
+    avx2_stages.push_back({ reinterpret_cast<void(*)(void)>(f), ctx, dtx });
 }
 
 void pipeline::call_avx2(size_t* x, size_t* n) {
