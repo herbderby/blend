@@ -1,4 +1,5 @@
 #include "abi.h"
+#include "cpu.h"
 #include "pipeline.h"
 #include "srgb.h"
 #include <assert.h>
@@ -116,8 +117,8 @@ void pipeline::call(size_t n) {
     assert (float_stages.size() > 0);
 
     size_t x = 0;
-    this->call_avx2 (&x, &n);
-    this->call_sse41(&x, &n);
+    if (cpu::supports(cpu::AVX2 | cpu::FMA | cpu::BMI1)) { this->call_avx2 (&x, &n); }
+    if (cpu::supports(cpu::SSE41                      )) { this->call_sse41(&x, &n); }
 
     while (n > 0) {
         auto start = reinterpret_cast<float_fn>(float_stages.back().next);

@@ -104,6 +104,8 @@ static ABI void srcover_srgb(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
     floats_to_srgb(dst+x, r, g, b, a);
 }
 
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
 void pipeline::add_sse41(Stage st, const void* ctx) {
     if (sse41_stages.size() == 0) {
         sse41_stages.reserve(8);
