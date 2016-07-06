@@ -41,86 +41,96 @@ static inline void floats_to_srgb(uint32_t srgb[1], float r, float g, float b, f
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-using float_fn = ABI void(*)(stage*, size_t, float, float, float, float);
+using float_fn = ABI void(*)(stage*, size_t, float, float, float, float,
+                                             float, float, float, float);
 
-static void next(stage* st, size_t x, float r, float g, float b, float a) {
+static void next(stage* st, size_t x, float sr, float sg, float sb, float sa,
+                                      float dr, float dg, float db, float da) {
     auto next = reinterpret_cast<float_fn>(st->next);
-    next(st+1, x, r,g,b,a);
+    next(st+1, x, sr,sg,sb,sa, dr,dg,db,da);
 }
 
-static ABI void load_srgb(stage* st, size_t x, float r, float g, float b, float a) {
-    auto src = static_cast<const uint32_t*>(st->ctx);
-    srgb_to_floats(src+x, &r,&g,&b,&a);
+static ABI void load_s_srgb(stage* st, size_t x, float sr, float sg, float sb, float sa,
+                                                 float dr, float dg, float db, float da) {
+    auto ptr = static_cast<const uint32_t*>(st->ctx);
+    srgb_to_floats(ptr+x, &sr,&sg,&sb,&sa);
 
-    next(st,x,r,g,b,a);
+    next(st,x, sr,sg,sb,sa, dr,dg,db,da);
 }
 
-static ABI void scale_u8(stage* st, size_t x, float r, float g, float b, float a) {
+static ABI void load_d_srgb(stage* st, size_t x, float sr, float sg, float sb, float sa,
+                                                 float dr, float dg, float db, float da) {
+    auto ptr = static_cast<const uint32_t*>(st->ctx);
+    srgb_to_floats(ptr+x, &dr,&dg,&db,&da);
+
+    next(st,x, sr,sg,sb,sa, dr,dg,db,da);
+}
+
+static ABI void srcover(stage* st, size_t x, float sr, float sg, float sb, float sa,
+                                             float dr, float dg, float db, float da) {
+    float A = 1 - sa;
+    sr += dr * A;
+    sg += dg * A;
+    sb += db * A;
+    sa += da * A;
+
+    next(st,x, sr,sg,sb,sa, dr,dg,db,da);
+}
+
+static ABI void scale_u8(stage* st, size_t x, float sr, float sg, float sb, float sa,
+                                              float dr, float dg, float db, float da) {
     auto cov = static_cast<const uint8_t*>(st->ctx);
     float c = cov[x] * (1/255.0f);
 
-    r *= c;
-    g *= c;
-    b *= c;
-    a *= c;
+    sr *= c;
+    sg *= c;
+    sb *= c;
+    sa *= c;
 
-    next(st,x,r,g,b,a);
+    next(st,x, sr,sg,sb,sa, dr,dg,db,da);
 }
 
-static ABI void srcover_srgb(stage* st, size_t x, float r, float g, float b, float a) {
-    auto dst = static_cast<const uint32_t*>(st->ctx);
-    float dr,dg,db,da;
-    srgb_to_floats(dst+x, &dr,&dg,&db,&da);
 
-    float A = 1 - a;
-    r += dr * A;
-    g += dg * A;
-    b += db * A;
-    a += da * A;
-
-    next(st,x,r,g,b,a);
-}
-
-static ABI void lerp_u8_srgb(stage* st, size_t x, float r, float g, float b, float a) {
+static ABI void lerp_u8(stage* st, size_t x, float sr, float sg, float sb, float sa,
+                                             float dr, float dg, float db, float da) {
     auto cov = static_cast<const uint8_t*>(st->ctx);
     float c = cov[x] * (1/255.0f);
 
-    auto dst = static_cast<const uint32_t*>(st->dtx);
-    float dr,dg,db,da;
-    srgb_to_floats(dst+x, &dr,&dg,&db,&da);
+    sr = dr + (sr-dr)*c;
+    sg = dg + (sg-dg)*c;
+    sb = db + (sb-db)*c;
+    sa = da + (sa-da)*c;
 
-    r = dr + (r-dr)*c;
-    g = dg + (g-dg)*c;
-    b = db + (b-db)*c;
-    a = da + (a-da)*c;
-
-    next(st,x,r,g,b,a);
+    next(st,x, sr,sg,sb,sa, dr,dg,db,da);
 }
 
-static ABI void store_srgb(stage* st, size_t x, float r, float g, float b, float a) {
-    auto dst = static_cast<uint32_t*>(st->dtx);
-    floats_to_srgb(dst+x, r,g,b,a);
+static ABI void store_srgb(stage* st, size_t x, float sr, float sg, float sb, float sa,
+                                                float   , float   , float   , float   ) {
+    auto ptr = static_cast<uint32_t*>(st->ctx);
+    floats_to_srgb(ptr+x, sr,sg,sb,sa);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-void pipeline::add_stage(Stage st, const void* ctx, void* dtx) {
+void pipeline::add_stage(Stage st, const void* const_ctx) {
+    auto ctx = const_cast<void*>(const_ctx);
     if (float_stages.size() == 0) {
         float_stages.reserve(8);
     }
 
-    this->add_avx2 (st, ctx, dtx);
-    this->add_sse41(st, ctx, dtx);
+    this->add_avx2 (st, ctx);
+    this->add_sse41(st, ctx);
 
     float_fn f = nullptr;
     switch (st) {
-        case load_srgb:     f = ::load_srgb;     break;
-        case scale_u8:      f = ::scale_u8;      break;
-        case srcover_srgb:  f = ::srcover_srgb;  break;
-        case lerp_u8_srgb:  f = ::lerp_u8_srgb;  break;
-        case store_srgb:    f = ::store_srgb;    break;
+        case load_s_srgb: f = ::load_s_srgb;   break;
+        case load_d_srgb: f = ::load_d_srgb;   break;
+        case     srcover: f = ::srcover;       break;
+        case    scale_u8: f = ::scale_u8;      break;
+        case     lerp_u8: f = ::lerp_u8;       break;
+        case  store_srgb: f = ::store_srgb;    break;
     }
-    float_stages.push_back({ reinterpret_cast<void(*)(void)>(f), ctx, dtx });
+    float_stages.push_back({ reinterpret_cast<void(*)(void)>(f), ctx });
 }
 
 void pipeline::ready() {
@@ -146,7 +156,7 @@ void pipeline::call(size_t n) {
 
     while (n > 0) {
         auto start = reinterpret_cast<float_fn>(float_stages.back().next);
-        start(float_stages.data(), x, 0,0,0,0);
+        start(float_stages.data(), x, 0,0,0,0, 0,0,0,0);
 
         x += 1;
         n -= 1;

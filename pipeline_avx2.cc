@@ -81,82 +81,90 @@ static f8 load_u8(const uint8_t cov[8]) {
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-using avx2_fn = ABI void(*)(stage*, size_t, f8, f8, f8, f8);
+using avx2_fn = ABI void(*)(stage*, size_t, f8,f8,f8,f8, f8,f8,f8,f8);
 
-static void next(stage* st, size_t x, f8 r, f8 g, f8 b, f8 a) {
-    auto jump = reinterpret_cast<avx2_fn>(st->next);
-    jump(st+1, x, r,g,b,a);
+static void next(stage* st, size_t x, f8 sr, f8 sg, f8 sb, f8 sa,
+                                      f8 dr, f8 dg, f8 db, f8 da) {
+    auto next = reinterpret_cast<avx2_fn>(st->next);
+    next(st+1, x, sr,sg,sb,sa, dr,dg,db,da);
 }
 
-static ABI void load_srgb(stage* st, size_t x, f8 r, f8 g, f8 b, f8 a) {
-    auto src = static_cast<const uint32_t*>(st->ctx);
-    srgb_to_floats(src+x, &r,&g,&b,&a);
+static ABI void load_s_srgb(stage* st, size_t x, f8 sr, f8 sg, f8 sb, f8 sa,
+                                                 f8 dr, f8 dg, f8 db, f8 da) {
+    auto ptr = static_cast<const uint32_t*>(st->ctx);
+    srgb_to_floats(ptr+x, &sr,&sg,&sb,&sa);
 
-    next(st,x,r,g,b,a);
+    next(st,x, sr,sg,sb,sa, dr,dg,db,da);
 }
 
-static ABI void scale_u8(stage* st, size_t x, f8 r, f8 g, f8 b, f8 a) {
-    auto cov  = static_cast<const uint8_t*>(st->ctx);
-    f8 c = load_u8(cov+x);
-    r *= c;
-    g *= c;
-    b *= c;
-    a *= c;
+static ABI void load_d_srgb(stage* st, size_t x, f8 sr, f8 sg, f8 sb, f8 sa,
+                                                 f8 dr, f8 dg, f8 db, f8 da) {
+    auto ptr = static_cast<const uint32_t*>(st->ctx);
+    srgb_to_floats(ptr+x, &dr,&dg,&db,&da);
 
-    next(st,x,r,g,b,a);
+    next(st,x, sr,sg,sb,sa, dr,dg,db,da);
 }
 
-static ABI void srcover_srgb(stage* st, size_t x, f8 r, f8 g, f8 b, f8 a) {
-    auto dst = static_cast<const uint32_t*>(st->ctx);
-    f8 dr,dg,db,da;
-    srgb_to_floats(dst+x, &dr,&dg,&db,&da);
+static ABI void srcover(stage* st, size_t x, f8 sr, f8 sg, f8 sb, f8 sa,
+                                             f8 dr, f8 dg, f8 db, f8 da) {
+    f8 A = _mm256_sub_ps(_mm256_set1_ps(1), sa);
+    sr += dr * A;
+    sg += dg * A;
+    sb += db * A;
+    sa += da * A;
 
-    f8 A = _mm256_sub_ps(_mm256_set1_ps(1), a);
-    r += dr * A;
-    g += dg * A;
-    b += db * A;
-    a += da * A;
-
-    next(st,x,r,g,b,a);
+    next(st,x, sr,sg,sb,sa, dr,dg,db,da);
 }
 
-static ABI void lerp_u8_srgb(stage* st, size_t x, f8 r, f8 g, f8 b, f8 a) {
+static ABI void scale_u8(stage* st, size_t x, f8 sr, f8 sg, f8 sb, f8 sa,
+                                              f8 dr, f8 dg, f8 db, f8 da) {
     auto cov = static_cast<const uint8_t*>(st->ctx);
     f8 c = load_u8(cov+x);
 
-    auto dst = static_cast<const uint32_t*>(st->dtx);
-    f8 dr,dg,db,da;
-    srgb_to_floats(dst+x, &dr,&dg,&db,&da);
+    sr *= c;
+    sg *= c;
+    sb *= c;
+    sa *= c;
 
-    r = dr + (r-dr)*c;
-    g = dg + (g-dg)*c;
-    b = db + (b-db)*c;
-    a = da + (a-da)*c;
-
-    next(st,x,r,g,b,a);
+    next(st,x, sr,sg,sb,sa, dr,dg,db,da);
 }
 
-static ABI void store_srgb(stage* st, size_t x, f8 r, f8 g, f8 b, f8 a) {
-    auto dst = static_cast<uint32_t*>(st->dtx);
-    floats_to_srgb(dst+x, r,g,b,a);
+static ABI void lerp_u8(stage* st, size_t x, f8 sr, f8 sg, f8 sb, f8 sa,
+                                             f8 dr, f8 dg, f8 db, f8 da) {
+    auto cov = static_cast<const uint8_t*>(st->ctx);
+    f8 c = load_u8(cov+x);
+
+    sr = dr + (sr-dr)*c;
+    sg = dg + (sg-dg)*c;
+    sb = db + (sb-db)*c;
+    sa = da + (sa-da)*c;
+
+    next(st,x, sr,sg,sb,sa, dr,dg,db,da);
+}
+
+static ABI void store_srgb(stage* st, size_t x, f8 sr, f8 sg, f8 sb, f8 sa,
+                                                f8   , f8   , f8   , f8   ) {
+    auto ptr = static_cast<uint32_t*>(st->ctx);
+    floats_to_srgb(ptr+x, sr,sg,sb,sa);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-void pipeline::add_avx2(Stage st, const void* ctx, void* dtx) {
+void pipeline::add_avx2(Stage st, void* ctx) {
     if (avx2_stages.size() == 0) {
         avx2_stages.reserve(8);
     }
 
     avx2_fn f = nullptr;
     switch (st) {
-        case load_srgb:     f = ::load_srgb;     break;
-        case scale_u8:      f = ::scale_u8;      break;
-        case srcover_srgb:  f = ::srcover_srgb;  break;
-        case lerp_u8_srgb:  f = ::lerp_u8_srgb;  break;
-        case store_srgb:    f = ::store_srgb;    break;
+        case load_s_srgb: f = ::load_s_srgb;   break;
+        case load_d_srgb: f = ::load_d_srgb;   break;
+        case     srcover: f = ::srcover;       break;
+        case    scale_u8: f = ::scale_u8;      break;
+        case     lerp_u8: f = ::lerp_u8;       break;
+        case  store_srgb: f = ::store_srgb;    break;
     }
-    avx2_stages.push_back({ reinterpret_cast<void(*)(void)>(f), ctx, dtx });
+    avx2_stages.push_back({ reinterpret_cast<void(*)(void)>(f), ctx });
 }
 
 void pipeline::call_avx2(size_t* x, size_t* n) {
@@ -165,7 +173,7 @@ void pipeline::call_avx2(size_t* x, size_t* n) {
     f8 u = _mm256_undefined_ps();
     auto start = reinterpret_cast<avx2_fn>(avx2_stages.back().next);
     while (*n >= 8) {
-        start(avx2_stages.data(), *x, u,u,u,u);
+        start(avx2_stages.data(), *x, u,u,u,u, u,u,u,u);
         *x += 8;
         *n -= 8;
     }

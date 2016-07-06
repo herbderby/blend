@@ -5,9 +5,10 @@
 
 static void srcover(uint32_t* dp, const uint32_t* sp, size_t n) {
     pipeline p;
-    p.add_stage(pipeline::   load_srgb,      sp, nullptr);
-    p.add_stage(pipeline::srcover_srgb,      dp, nullptr);
-    p.add_stage(pipeline::  store_srgb, nullptr,      dp);
+    p.add_stage(pipeline:: load_s_srgb, sp);
+    p.add_stage(pipeline:: load_d_srgb, dp);
+    p.add_stage(pipeline::     srcover, nullptr);
+    p.add_stage(pipeline::  store_srgb, dp);
     p.ready();
 
     p.call(n);
@@ -15,10 +16,11 @@ static void srcover(uint32_t* dp, const uint32_t* sp, size_t n) {
 
 static void srcover_mask(uint32_t* dp, const uint32_t* sp, const uint8_t* cp, size_t n) {
     pipeline p;
-    p.add_stage(pipeline::   load_srgb,      sp, nullptr);
-    p.add_stage(pipeline::    scale_u8,      cp, nullptr);
-    p.add_stage(pipeline::srcover_srgb,      dp, nullptr);
-    p.add_stage(pipeline::  store_srgb, nullptr,      dp);
+    p.add_stage(pipeline:: load_s_srgb, sp);
+    p.add_stage(pipeline::    scale_u8, cp);
+    p.add_stage(pipeline:: load_d_srgb, dp);
+    p.add_stage(pipeline::     srcover, nullptr);
+    p.add_stage(pipeline::  store_srgb, dp);
     p.ready();
 
     p.call(n);
@@ -26,9 +28,10 @@ static void srcover_mask(uint32_t* dp, const uint32_t* sp, const uint8_t* cp, si
 
 static void src_mask(uint32_t* dp, const uint32_t* sp, const uint8_t* cp, size_t n) {
     pipeline p;
-    p.add_stage(pipeline::   load_srgb,      sp, nullptr);
-    p.add_stage(pipeline::lerp_u8_srgb,      cp,      dp);
-    p.add_stage(pipeline::  store_srgb, nullptr,      dp);
+    p.add_stage(pipeline:: load_s_srgb, sp);
+    p.add_stage(pipeline:: load_d_srgb, dp);
+    p.add_stage(pipeline::     lerp_u8, cp);
+    p.add_stage(pipeline::  store_srgb, dp);
     p.ready();
 
     p.call(n);
@@ -36,8 +39,8 @@ static void src_mask(uint32_t* dp, const uint32_t* sp, const uint8_t* cp, size_t
 
 static void src_slow(uint32_t* dp, const uint32_t* sp, size_t n) {
     pipeline p;
-    p.add_stage(pipeline::   load_srgb,      sp, nullptr);
-    p.add_stage(pipeline::  store_srgb, nullptr,      dp);
+    p.add_stage(pipeline:: load_s_srgb, sp);
+    p.add_stage(pipeline::  store_srgb, dp);
     p.ready();
 
     p.call(n);
