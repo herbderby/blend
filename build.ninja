@@ -19,7 +19,7 @@ build bin/pipeline.o:       cc pipeline.cc
 build bin/pipeline_sse41.o: cc pipeline_sse41.cc
     cflags = $cflags -msse4.1
 build bin/pipeline_avx2.o:  cc pipeline_avx2.cc
-    cflags = $cflags -mavx2 -mfma -mbmi -mf16c -ffp-contract=fast
+    cflags = $cflags -mavx2 -mfma -mbmi -ffp-contract=fast
 
 build bin/cpu.o:  cc cpu.cc
 build bin/srgb.o: cc srgb.cc

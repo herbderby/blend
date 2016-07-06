@@ -55,17 +55,6 @@ static ABI void load_srgb(stage* st, size_t x, float r, float g, float b, float 
     next(st,x,r,g,b,a);
 }
 
-static ABI void load_f16(stage* st, size_t x, float r, float g, float b, float a) {
-    auto src = static_cast<const __fp16*>(st->ctx);
-
-    r = static_cast<float>(src[4*x+0]);
-    g = static_cast<float>(src[4*x+1]);
-    b = static_cast<float>(src[4*x+2]);
-    a = static_cast<float>(src[4*x+3]);
-
-    next(st,x,r,g,b,a);
-}
-
 static ABI void scale_u8(stage* st, size_t x, float r, float g, float b, float a) {
     auto cov = static_cast<const uint8_t*>(st->ctx);
     float c = cov[x] * (1/255.0f);
@@ -126,7 +115,6 @@ void pipeline::add_stage(Stage st, const void* ctx, void* dtx) {
     float_fn f = nullptr;
     switch (st) {
         case load_srgb:     f = ::load_srgb;     break;
-        case load_f16:      f = ::load_f16;      break;
         case scale_u8:      f = ::scale_u8;      break;
         case srcover_srgb:  f = ::srcover_srgb;  break;
         case lerp_u8_srgb:  f = ::lerp_u8_srgb;  break;
@@ -153,8 +141,8 @@ void pipeline::call(size_t n) {
     assert (float_stages.size() > 0);
 
     size_t x = 0;
-    if (cpu::supports(cpu::AVX2 | cpu::FMA | cpu::BMI1 | cpu::F16C)) { this->call_avx2 (&x, &n); }
-    if (cpu::supports(cpu::SSE41                                  )) { this->call_sse41(&x, &n); }
+    if (cpu::supports(cpu::AVX2 | cpu::FMA | cpu::BMI1)) { this->call_avx2 (&x, &n); }
+    if (cpu::supports(cpu::SSE41                      )) { this->call_sse41(&x, &n); }
 
     while (n > 0) {
         auto start = reinterpret_cast<float_fn>(float_stages.back().next);
