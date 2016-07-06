@@ -69,82 +69,90 @@ static f4 load_u8(const uint8_t cov[4]) {
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-using sse41_fn = ABI void(*)(stage*, size_t, f4, f4, f4, f4);
+using sse41_fn = ABI void(*)(stage*, size_t, f4,f4,f4,f4, f4,f4,f4,f4);
 
-static void next(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
-    auto jump = reinterpret_cast<sse41_fn>(st->next);
-    jump(st+1, x, r,g,b,a);
+static void next(stage* st, size_t x, f4 sr, f4 sg, f4 sb, f4 sa,
+                                      f4 dr, f4 dg, f4 db, f4 da) {
+    auto next = reinterpret_cast<sse41_fn>(st->next);
+    next(st+1, x, sr,sg,sb,sa, dr,dg,db,da);
 }
 
-static ABI void load_srgb(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
-    auto src = static_cast<const uint32_t*>(st->ctx);
-    srgb_to_floats(src+x, &r,&g,&b,&a);
+static ABI void load_s_srgb(stage* st, size_t x, f4 sr, f4 sg, f4 sb, f4 sa,
+                                                 f4 dr, f4 dg, f4 db, f4 da) {
+    auto ptr = static_cast<const uint32_t*>(st->ctx);
+    srgb_to_floats(ptr+x, &sr,&sg,&sb,&sa);
 
-    next(st,x,r,g,b,a);
+    next(st,x, sr,sg,sb,sa, dr,dg,db,da);
 }
 
-static ABI void scale_u8(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
-    auto cov = static_cast<const uint8_t*>(st->ctx);
-    f4 c = load_u8(cov+x);
-    r *= c;
-    g *= c;
-    b *= c;
-    a *= c;
+static ABI void load_d_srgb(stage* st, size_t x, f4 sr, f4 sg, f4 sb, f4 sa,
+                                                 f4 dr, f4 dg, f4 db, f4 da) {
+    auto ptr = static_cast<const uint32_t*>(st->ctx);
+    srgb_to_floats(ptr+x, &dr,&dg,&db,&da);
 
-    next(st,x,r,g,b,a);
+    next(st,x, sr,sg,sb,sa, dr,dg,db,da);
 }
 
-static ABI void srcover_srgb(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
-    auto dst = static_cast<const uint32_t*>(st->ctx);
-    f4 dr,dg,db,da;
-    srgb_to_floats(dst+x, &dr,&dg,&db,&da);
+static ABI void srcover(stage* st, size_t x, f4 sr, f4 sg, f4 sb, f4 sa,
+                                             f4 dr, f4 dg, f4 db, f4 da) {
+    f4 A = _mm_sub_ps(_mm_set1_ps(1), sa);
+    sr += dr * A;
+    sg += dg * A;
+    sb += db * A;
+    sa += da * A;
 
-    f4 A = _mm_sub_ps(_mm_set1_ps(1), a);
-    r += dr * A;
-    g += dg * A;
-    b += db * A;
-    a += da * A;
-
-    next(st,x,r,g,b,a);
+    next(st,x, sr,sg,sb,sa, dr,dg,db,da);
 }
 
-static ABI void lerp_u8_srgb(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
+static ABI void scale_u8(stage* st, size_t x, f4 sr, f4 sg, f4 sb, f4 sa,
+                                              f4 dr, f4 dg, f4 db, f4 da) {
     auto cov = static_cast<const uint8_t*>(st->ctx);
     f4 c = load_u8(cov+x);
 
-    auto dst = static_cast<const uint32_t*>(st->dtx);
-    f4 dr,dg,db,da;
-    srgb_to_floats(dst+x, &dr,&dg,&db,&da);
+    sr *= c;
+    sg *= c;
+    sb *= c;
+    sa *= c;
 
-    r = dr + (r-dr)*c;
-    g = dg + (g-dg)*c;
-    b = db + (b-db)*c;
-    a = da + (a-da)*c;
-
-    next(st,x,r,g,b,a);
+    next(st,x, sr,sg,sb,sa, dr,dg,db,da);
 }
 
-static ABI void store_srgb(stage* st, size_t x, f4 r, f4 g, f4 b, f4 a) {
-    auto dst = static_cast<uint32_t*>(st->dtx);
-    floats_to_srgb(dst+x, r,g,b,a);
+static ABI void lerp_u8(stage* st, size_t x, f4 sr, f4 sg, f4 sb, f4 sa,
+                                             f4 dr, f4 dg, f4 db, f4 da) {
+    auto cov = static_cast<const uint8_t*>(st->ctx);
+    f4 c = load_u8(cov+x);
+
+    sr = dr + (sr-dr)*c;
+    sg = dg + (sg-dg)*c;
+    sb = db + (sb-db)*c;
+    sa = da + (sa-da)*c;
+
+    next(st,x, sr,sg,sb,sa, dr,dg,db,da);
+}
+
+static ABI void store_srgb(stage* st, size_t x, f4 sr, f4 sg, f4 sb, f4 sa,
+                                                f4   , f4   , f4   , f4   ) {
+    auto ptr = static_cast<uint32_t*>(st->ctx);
+    floats_to_srgb(ptr+x, sr,sg,sb,sa);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-void pipeline::add_sse41(Stage st, const void* ctx, void* dtx) {
+void pipeline::add_sse41(Stage st, void* ctx) {
     if (sse41_stages.size() == 0) {
         sse41_stages.reserve(8);
     }
 
     sse41_fn f = nullptr;
     switch (st) {
-        case load_srgb:     f = ::load_srgb;     break;
-        case scale_u8:      f = ::scale_u8;      break;
-        case srcover_srgb:  f = ::srcover_srgb;  break;
-        case lerp_u8_srgb:  f = ::lerp_u8_srgb;  break;
-        case store_srgb:    f = ::store_srgb;    break;
+        case load_s_srgb: f = ::load_s_srgb;   break;
+        case load_d_srgb: f = ::load_d_srgb;   break;
+        case     srcover: f = ::srcover;       break;
+        case    scale_u8: f = ::scale_u8;      break;
+        case     lerp_u8: f = ::lerp_u8;       break;
+        case  store_srgb: f = ::store_srgb;    break;
     }
-    sse41_stages.push_back({ reinterpret_cast<void(*)(void)>(f), ctx, dtx });
+    sse41_stages.push_back({ reinterpret_cast<void(*)(void)>(f), ctx });
 }
 
 void pipeline::call_sse41(size_t* x, size_t* n) {
@@ -153,7 +161,7 @@ void pipeline::call_sse41(size_t* x, size_t* n) {
     f4 u = _mm_undefined_ps();
     auto start = reinterpret_cast<sse41_fn>(sse41_stages.back().next);
     while (*n >= 4) {
-        start(sse41_stages.data(), *x, u,u,u,u);
+        start(sse41_stages.data(), *x, u,u,u,u, u,u,u,u);
         *x += 4;
         *n -= 4;
     }
