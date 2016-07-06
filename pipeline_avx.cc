@@ -1,4 +1,3 @@
-#include "abi.h"
 #include "pipeline.h"
 #include "srgb.h"
 #include <assert.h>
@@ -32,9 +31,11 @@ static inline void srgb_to_floats(const uint32_t srgb[8], f8* r, f8* g, f8* b, f
            srgb_to_float[(srgb[6] >> 16) & 0xff],
            srgb_to_float[(srgb[7] >> 16) & 0xff] };
 
-    auto p = reinterpret_cast<const __m256i*>(srgb);
+    auto a_lo = _mm_srli_epi32(_mm_loadu_si128(reinterpret_cast<const __m128i*>(srgb+0)), 24),
+         a_hi = _mm_srli_epi32(_mm_loadu_si128(reinterpret_cast<const __m128i*>(srgb+4)), 24);
+
     *a = _mm256_mul_ps(_mm256_set1_ps(1/255.0f),
-                       _mm256_cvtepi32_ps(_mm256_srli_epi32(_mm256_loadu_si256(p), 24)));
+                       _mm256_cvtepi32_ps(_mm256_set_m128i(a_hi, a_lo)));
 }
 
 static inline void floats_to_srgb(uint32_t srgb[8], f8 r, f8 g, f8 b, f8 a) {
@@ -64,17 +65,31 @@ static inline void floats_to_srgb(uint32_t srgb[8], f8 r, f8 g, f8 b, f8 a) {
     b = clamp_0_255(to_srgb(b));
     a = clamp_0_255(_mm256_mul_ps(a, _mm256_set1_ps(255.0f)));
 
-    __m256i rgba = _mm256_or_si256(                  _mm256_cvtps_epi32(r)     ,
-                   _mm256_or_si256(_mm256_slli_epi32(_mm256_cvtps_epi32(g),  8),
-                   _mm256_or_si256(_mm256_slli_epi32(_mm256_cvtps_epi32(b), 16),
-                                   _mm256_slli_epi32(_mm256_cvtps_epi32(a), 24))));
-    _mm256_storeu_si256(reinterpret_cast<__m256i*>(srgb), rgba);
+    auto store = [](uint32_t* dst, f4 R, f4 G, f4 B, f4 A) {
+        __m128i rgba = _mm_or_si128(               _mm_cvtps_epi32(R)     ,
+                       _mm_or_si128(_mm_slli_epi32(_mm_cvtps_epi32(G),  8),
+                       _mm_or_si128(_mm_slli_epi32(_mm_cvtps_epi32(B), 16),
+                                    _mm_slli_epi32(_mm_cvtps_epi32(A), 24))));
+        _mm_storeu_si128(reinterpret_cast<__m128i*>(dst), rgba);
+    };
+    store(srgb+0, _mm256_extractf128_ps(r, 0),
+                  _mm256_extractf128_ps(g, 0),
+                  _mm256_extractf128_ps(b, 0),
+                  _mm256_extractf128_ps(a, 0));
+
+    store(srgb+4, _mm256_extractf128_ps(r, 1),
+                  _mm256_extractf128_ps(g, 1),
+                  _mm256_extractf128_ps(b, 1),
+                  _mm256_extractf128_ps(a, 1));
 }
 
 static f8 load_u8(const uint8_t cov[8]) {
-    auto cov8 = reinterpret_cast<const __m128i*>(cov);
+    auto cov4 = reinterpret_cast<const int*>(cov);
+
+    auto lo = _mm_cvtepu8_epi32(_mm_cvtsi32_si128(cov4[0])),
+         hi = _mm_cvtepu8_epi32(_mm_cvtsi32_si128(cov4[1]));
     return _mm256_mul_ps(_mm256_set1_ps(1/255.0f),
-                         _mm256_cvtepi32_ps(_mm256_cvtepu8_epi32(_mm_loadl_epi64(cov8))));
+                         _mm256_cvtepi32_ps(_mm256_set_m128i(hi, lo)));
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -140,7 +155,7 @@ static ABI void store_srgb(stage* st, size_t x, f8 sr, f8 sg, f8 sb, f8 sa,
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-void pipeline::add_avx2(Stage st, void* ctx) {
+void pipeline::add_avx(Stage st, void* ctx) {
     if (ymm_stages.size() == 0) {
         ymm_stages.reserve(8);
     }
@@ -155,4 +170,16 @@ void pipeline::add_avx2(Stage st, void* ctx) {
         case  store_srgb: f = ::store_srgb;    break;
     }
     ymm_stages.push_back({ reinterpret_cast<void(*)(void)>(f), ctx });
+}
+
+void pipeline::call_ymm(size_t* x, size_t* n) {
+    assert (ymm_stages.size() > 0);
+
+    f8 u = _mm256_undefined_ps();
+    auto start = reinterpret_cast<ymm_fn>(ymm_stages.back().next);
+    while (*n >= 8) {
+        start(ymm_stages.data(), *x, u,u,u,u, u,u,u,u);
+        *x += 8;
+        *n -= 8;
+    }
 }

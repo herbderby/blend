@@ -4,8 +4,6 @@
 #include <assert.h>
 #include <immintrin.h>
 
-using f4 = __m128;
-
 static inline void srgb_to_floats(const uint32_t srgb[4], f4* r, f4* g, f4* b, f4* a) {
     *r = { srgb_to_float[(srgb[0] >>  0) & 0xff],
            srgb_to_float[(srgb[1] >>  0) & 0xff],
@@ -69,14 +67,6 @@ static f4 load_u8(const uint8_t cov[4]) {
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-using sse41_fn = ABI void(*)(stage*, size_t, f4,f4,f4,f4, f4,f4,f4,f4);
-
-static void next(stage* st, size_t x, f4 sr, f4 sg, f4 sb, f4 sa,
-                                      f4 dr, f4 dg, f4 db, f4 da) {
-    auto next = reinterpret_cast<sse41_fn>(st->next);
-    next(st+1, x, sr,sg,sb,sa, dr,dg,db,da);
-}
-
 static ABI void load_s_srgb(stage* st, size_t x, f4 sr, f4 sg, f4 sb, f4 sa,
                                                  f4 dr, f4 dg, f4 db, f4 da) {
     auto ptr = static_cast<const uint32_t*>(st->ctx);
@@ -139,11 +129,11 @@ static ABI void store_srgb(stage* st, size_t x, f4 sr, f4 sg, f4 sb, f4 sa,
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
 void pipeline::add_sse41(Stage st, void* ctx) {
-    if (sse41_stages.size() == 0) {
-        sse41_stages.reserve(8);
+    if (xmm_stages.size() == 0) {
+        xmm_stages.reserve(8);
     }
 
-    sse41_fn f = nullptr;
+    xmm_fn f = nullptr;
     switch (st) {
         case load_s_srgb: f = ::load_s_srgb;   break;
         case load_d_srgb: f = ::load_d_srgb;   break;
@@ -152,17 +142,5 @@ void pipeline::add_sse41(Stage st, void* ctx) {
         case     lerp_u8: f = ::lerp_u8;       break;
         case  store_srgb: f = ::store_srgb;    break;
     }
-    sse41_stages.push_back({ reinterpret_cast<void(*)(void)>(f), ctx });
-}
-
-void pipeline::call_sse41(size_t* x, size_t* n) {
-    assert (sse41_stages.size() > 0);
-
-    f4 u = _mm_undefined_ps();
-    auto start = reinterpret_cast<sse41_fn>(sse41_stages.back().next);
-    while (*n >= 4) {
-        start(sse41_stages.data(), *x, u,u,u,u, u,u,u,u);
-        *x += 4;
-        *n -= 4;
-    }
+    xmm_stages.push_back({ reinterpret_cast<void(*)(void)>(f), ctx });
 }
