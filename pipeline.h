@@ -1,28 +1,31 @@
 #pragma once
 
-#include <immintrin.h>
-
-struct stage;
-
-#if 0
-    #define ABI __attribute__((vectorcall))
-#elif 0
-    #define ABI __attribute__((sysv_abi))
-#else
-    #define ABI
-#endif
-
-typedef ABI void stage_fn(const struct stage*, size_t n, void* dp, __m128 d, __m128 s);
+#include <stdint.h>
+#include <stddef.h>
+#include <vector>
 
 struct stage {
-    stage_fn* next;
+    void (*next)(void);
     const void* ctx;
+    void* dtx;
 };
 
-stage_fn load_d_srgb,
-         load_s_srgb,
-         srcover,
-         lerp_u8,
-         store_s_srgb,
-         done_yet,
-         super;
+struct pipeline {
+    enum Stage { load_srgb, scale_u8, srcover_srgb, lerp_u8_srgb, store_srgb };
+
+    void add_stage(Stage, const void* ctx, void* dtx);
+    void ready();
+
+    void call(size_t n);
+
+private:
+    void add_avx2 (Stage, const void* ctx, void* dtx);
+    void add_sse41(Stage, const void* ctx, void* dtx);
+
+    void call_avx2 (size_t* x, size_t* n);
+    void call_sse41(size_t* x, size_t* n);
+
+    std::vector<stage> avx2_stages,
+                      sse41_stages,
+                      float_stages;
+};

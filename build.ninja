@@ -3,7 +3,7 @@ builddir = bin
 cc = clang-3.8 -fcolor-diagnostics -Weverything
 cflags = -O2 -momit-leaf-frame-pointer -march=native -ffp-contract=fast -Werror
 
-rule compile
+rule cc
     command = $cc -c $in -MD -MF $out.d $cflags -o $out
     depfile = $out.d
     deps    = gcc
@@ -14,15 +14,23 @@ rule link
 rule run
     command = ./$in > $out
 
-build bin/fused.o:    compile fused.c
-build bin/pipeline.o: compile pipeline.c
-build bin/srgb.o:     compile srgb.c
-build bin/test.o:     compile test.c
 
-build bin/test: link $
-      bin/fused.o    $
-      bin/pipeline.o $
-      bin/srgb.o     $
-      bin/test.o     $
+build bin/pipeline.o:       cc pipeline.cc
+build bin/pipeline_sse41.o: cc pipeline_sse41.cc
+    cflags = $cflags -msse4.1
+build bin/pipeline_avx2.o:  cc pipeline_avx2.cc
+    cflags = $cflags -mavx2 -mfma -mbmi -ffp-contract=fast
+
+build bin/cpu.o:  cc cpu.cc
+build bin/srgb.o: cc srgb.cc
+build bin/test.o: cc test.cc
+
+build bin/test: link       $
+      bin/cpu.o            $
+      bin/pipeline.o       $
+      bin/pipeline_sse41.o $
+      bin/pipeline_avx2.o  $
+      bin/srgb.o           $
+      bin/test.o           $
 
 build bin/test.log: run bin/test

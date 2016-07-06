@@ -10,3 +10,11 @@
 //
 //    AAPCS:   r0-r3, q0-q3
 //    AAPCS64: r0-r7, v0-v7
+
+#if 0
+    #define ABI __attribute__((vectorcall))
+#elif 0
+    #define ABI __attribute__((sysv_abi))
+#else
+    #define ABI
+#endif
