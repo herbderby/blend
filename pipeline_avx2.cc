@@ -95,6 +95,29 @@ static ABI void load_srgb(stage* st, size_t x, f8 r, f8 g, f8 b, f8 a) {
     next(st,x,r,g,b,a);
 }
 
+static ABI void load_f16(stage* st, size_t x, f8 r, f8 g, f8 b, f8 a) {
+    auto src = static_cast<const int64_t*>(st->ctx);
+
+    auto lo = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(src+x+0)),
+         hi = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(src+x+4));
+
+    auto even = _mm256_unpacklo_epi16(lo, hi),
+          odd = _mm256_unpackhi_epi16(lo, hi);
+
+    auto rg = _mm256_unpacklo_epi16(even, odd),
+         ba = _mm256_unpackhi_epi16(even, odd);
+
+    rg = _mm256_permute4x64_epi64(rg, 0xd8);
+    ba = _mm256_permute4x64_epi64(ba, 0xd8);
+
+    r = _mm256_cvtph_ps(_mm256_extracti128_si256(rg, 0));
+    g = _mm256_cvtph_ps(_mm256_extracti128_si256(rg, 1));
+    b = _mm256_cvtph_ps(_mm256_extracti128_si256(ba, 0));
+    a = _mm256_cvtph_ps(_mm256_extracti128_si256(ba, 1));
+
+    next(st,x,r,g,b,a);
+}
+
 static ABI void scale_u8(stage* st, size_t x, f8 r, f8 g, f8 b, f8 a) {
     auto cov  = static_cast<const uint8_t*>(st->ctx);
     f8 c = load_u8(cov+x);
@@ -151,6 +174,7 @@ void pipeline::add_avx2(Stage st, const void* ctx, void* dtx) {
     avx2_fn f = nullptr;
     switch (st) {
         case load_srgb:     f = ::load_srgb;     break;
+        case load_f16:      f = ::load_f16;      break;
         case scale_u8:      f = ::scale_u8;      break;
         case srcover_srgb:  f = ::srcover_srgb;  break;
         case lerp_u8_srgb:  f = ::lerp_u8_srgb;  break;
