@@ -1,6 +1,7 @@
 #include "cpu.h"
 #include "pipeline.h"
 #include <stdlib.h>
+#include <string.h>
 
 static void srcover(uint32_t* dp, const uint32_t* sp, size_t n) {
     pipeline p;
