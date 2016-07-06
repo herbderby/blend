@@ -16,8 +16,14 @@ rule run
 
 
 build bin/pipeline.o:       cc pipeline.cc
+
+build bin/pipeline_sse.o:   cc pipeline_sse.cc
+    cflags = $cflags -msse
 build bin/pipeline_sse41.o: cc pipeline_sse41.cc
     cflags = $cflags -msse4.1
+
+build bin/pipeline_avx.o:  cc pipeline_avx.cc
+    cflags = $cflags -mavx -mfma -mbmi -ffp-contract=fast
 build bin/pipeline_avx2.o:  cc pipeline_avx2.cc
     cflags = $cflags -mavx2 -mfma -mbmi -ffp-contract=fast
 
@@ -28,7 +34,9 @@ build bin/test.o: cc test.cc
 build bin/test: link       $
       bin/cpu.o            $
       bin/pipeline.o       $
+      bin/pipeline_sse.o   $
       bin/pipeline_sse41.o $
+      bin/pipeline_avx.o   $
       bin/pipeline_avx2.o  $
       bin/srgb.o           $
       bin/test.o           $

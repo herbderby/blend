@@ -118,7 +118,12 @@ void pipeline::add_stage(Stage st, const void* const_ctx) {
         float_stages.reserve(8);
     }
 
-    this->add_avx2 (st, ctx);
+    if ((1) && cpu::supports(cpu::AVX2 | cpu::FMA | cpu::BMI1)) {
+        this->add_avx2(st, ctx);
+    } else {
+        this->add_avx (st, ctx);
+    }
+
     this->add_sse41(st, ctx);
 
     float_fn f = nullptr;
@@ -142,8 +147,8 @@ void pipeline::ready() {
         (*stages)[stages->size() - 1].next = start;
     };
 
-    rewire(& avx2_stages);
-    rewire(&sse41_stages);
+    rewire(&  ymm_stages);
+    rewire(&  xmm_stages);
     rewire(&float_stages);
 }
 
@@ -151,8 +156,8 @@ void pipeline::call(size_t n) {
     assert (float_stages.size() > 0);
 
     size_t x = 0;
-    if (cpu::supports(cpu::AVX2 | cpu::FMA | cpu::BMI1)) { this->call_avx2 (&x, &n); }
-    if (cpu::supports(cpu::SSE41                      )) { this->call_sse41(&x, &n); }
+    if ((1) && cpu::supports(cpu::AVX  )) { this->call_ymm(&x, &n); }
+    if ((1) && cpu::supports(cpu::SSE41)) { this->call_xmm(&x, &n); }
 
     while (n > 0) {
         auto start = reinterpret_cast<float_fn>(float_stages.back().next);
